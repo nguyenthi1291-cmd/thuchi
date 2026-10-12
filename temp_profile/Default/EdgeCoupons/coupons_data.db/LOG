@@ -1,0 +1,7 @@
+2026/10/12-10:09:19.407 66c8 Creating DB D:\Quanlythuchi\temp_profile\Default\EdgeCoupons/coupons_data.db since it was missing.
+2026/10/12-10:09:19.410 66c8 Reusing MANIFEST D:\Quanlythuchi\temp_profile\Default\EdgeCoupons/coupons_data.db/MANIFEST-000001
+2026/10/12-10:09:19.411 66c8 Recovering log #4
+2026/10/12-10:09:19.411 66c8 Reusing old log D:\Quanlythuchi\temp_profile\Default\EdgeCoupons/coupons_data.db/000004.log 
+2026/10/12-10:09:19.508 3f34 Level-0 table #6: started
+2026/10/12-10:09:19.511 3f34 Level-0 table #6: 683448 bytes OK
+2026/10/12-10:09:19.512 3f34 Delete type=0 #4

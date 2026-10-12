@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản lý Thu Chi — Sơn Mài • F&B • Văn phòng</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+</head>
+<body>
+
+  <!-- BANNER CẢNH BÁO KHI CHƯA NHẬP SUPABASE ANON KEY -->
+  <div id="config-alert-banner" class="config-banner hidden">
+    <div>
+      <strong>⚠️ Chưa cấu hình Supabase Anon Key:</strong> Để kết nối database thật và đăng nhập, vui lòng nhập Anon Key của dự án <code>Quanlythuchi</code>.
+    </div>
+    <button id="btn-open-config-banner" class="btn btn-sm btn-primary">Cấu hình ngay</button>
+  </div>
+
+  <!-- HEADER -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-section">
+        <div class="brand-icon">₫</div>
+        <div class="brand-titles">
+          <h1>Hệ thống Quản lý Thu Chi</h1>
+          <div class="brand-sub">
+            <span class="brand-tag tag-sm">Sơn Mài</span>
+            <span class="brand-tag tag-fnb">F&B</span>
+            <span class="brand-tag tag-vp">Văn phòng</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAIN NAVIGATION TABS -->
+      <nav id="main-nav-tabs" class="main-nav hidden">
+        <button id="nav-btn-transactions" class="nav-tab-btn active" type="button">
+          📑 Sổ Thu Chi Chung
+        </button>
+        <button id="nav-btn-fnb-rec" class="nav-tab-btn" type="button">
+          ⚖️ Đối soát Bán hàng F&B
+        </button>
+        <button id="nav-btn-salary-bank" class="nav-tab-btn" type="button">
+          💳 Chi Lương & Chuyển Khoản
+        </button>
+      </nav>
+
+      <div class="header-actions">
+        <!-- Khi đã đăng nhập -->
+        <div id="user-info-area" class="user-badge hidden">
+          <span class="user-status-dot"></span>
+          <span id="user-email-display">user@example.com</span>
+        </div>
+
+        <button id="btn-open-excel-modal" class="btn btn-sm btn-outline hidden" title="Tải file Excel mẫu & Import dữ liệu">
+          📥 File Excel & Import
+        </button>
+
+        <button id="btn-config" class="btn btn-sm btn-outline" title="Cấu hình kết nối Supabase">
+          ⚙️ Cấu hình DB
+        </button>
+
+        <button id="btn-logout" class="btn btn-sm btn-outline hidden">
+          Đăng xuất
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="main-wrapper">
+
+    <!-- ================= KHU VỰC AUTH (KHI CHƯA ĐĂNG NHẬP) ================= -->
+    <section id="auth-section" class="auth-wrapper">
+      <div class="auth-card">
+        <div class="auth-intro">
+          <h2>Đăng nhập Hệ thống</h2>
+          <p>Quản lý tài chính thu chi 3 mảng Sơn Mài, F&B và Văn phòng</p>
+        </div>
+
+        <div class="auth-tabs">
+          <button id="tab-login" class="auth-tab-btn active">Đăng nhập</button>
+          <button id="tab-register" class="auth-tab-btn">Đăng ký mới</button>
+        </div>
+
+        <!-- Form Đăng nhập -->
+        <form id="form-login">
+          <div class="form-group">
+            <label for="login-email">Email tài khoản <span class="required">*</span></label>
+            <input type="email" id="login-email" class="form-control" placeholder="admin@example.com" required autocomplete="email">
+          </div>
+          <div class="form-group">
+            <label for="login-password">Mật khẩu <span class="required">*</span></label>
+            <input type="password" id="login-password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+          </div>
+          <button type="submit" id="btn-submit-login" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
+            Đăng nhập
+          </button>
+        </form>
+
+        <!-- Form Đăng ký -->
+        <form id="form-register" class="hidden">
+          <div class="form-group">
+            <label for="reg-email">Email đăng ký <span class="required">*</span></label>
+            <input type="email" id="reg-email" class="form-control" placeholder="nhansu@example.com" required autocomplete="email">
+          </div>
+          <div class="form-group">
+            <label for="reg-password">Mật khẩu (tối thiểu 6 ký tự) <span class="required">*</span></label>
+            <input type="password" id="reg-password" class="form-control" placeholder="••••••••" required minlength="6" autocomplete="new-password">
+          </div>
+          <button type="submit" id="btn-submit-register" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
+            Tạo tài khoản mới
+          </button>
+        </form>
+
+        <div id="auth-message-box" class="hidden" style="margin-top: 1rem; padding: 0.75rem; border-radius: var(--radius-sm); font-size: 0.85rem;"></div>
+      </div>
+    </section>
+
+    <!-- ================= KHU VỰC CHÍNH (KHI ĐÃ ĐĂNG NHẬP) ================= -->
+    <section id="app-section" class="hidden">
+
+      <!-- ================= VIEW 1: SỔ GIAO DỊCH THU CHI CHUNG ================= -->
+      <div id="view-transactions" class="app-view">
+
+        <!-- 1. DASHBOARD 4 CHỈ SỐ KPI CHÍNH -->
+        <div class="dashboard-grid">
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Tổng thu</span>
+            <span class="kpi-icon icon-income">▲</span>
+          </div>
+          <div id="kpi-total-income" class="kpi-value text-positive">0 ₫</div>
+          <div class="kpi-footer">Tổng tiền thu trong kỳ lọc</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Tổng chi</span>
+            <span class="kpi-icon icon-expense">▼</span>
+          </div>
+          <div id="kpi-total-expense" class="kpi-value text-negative">0 ₫</div>
+          <div class="kpi-footer">Tổng tiền chi trong kỳ lọc</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Chênh lệch thu – chi</span>
+            <span id="kpi-net-badge" class="badge badge-neutral">Cân bằng</span>
+          </div>
+          <div id="kpi-net-balance" class="kpi-value">0 ₫</div>
+          <div class="kpi-footer">Tổng thu trừ Tổng chi</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Số lượng giao dịch</span>
+            <span class="kpi-icon icon-count">📋</span>
+          </div>
+          <div id="kpi-tx-count" class="kpi-value">0 giao dịch</div>
+          <div class="kpi-footer">Số bản ghi theo bộ lọc</div>
+        </div>
+      </div>
+
+      <!-- 2. THỐNG KÊ 3 MẢNG KINH DOANH -->
+      <div class="units-overview-grid">
+        <!-- Sơn Mài -->
+        <div class="unit-card unit-sonmai">
+          <div class="unit-card-title">
+            <span>🎨 Sơn Mài</span>
+            <span id="unit-son-mai-count" class="badge badge-sonmai">0 GD</span>
+          </div>
+          <div class="unit-stats-row">
+            <span>Thu:</span>
+            <span id="unit-son-mai-income" class="text-positive font-bold">0 ₫</span>
+          </div>
+          <div class="unit-stats-row">
+            <span>Chi:</span>
+            <span id="unit-son-mai-expense" class="text-negative font-bold">0 ₫</span>
+          </div>
+          <div class="unit-stats-row net-row">
+            <span>Chênh lệch:</span>
+            <span id="unit-son-mai-net">0 ₫</span>
+          </div>
+        </div>
+
+        <!-- F&B -->
+        <div class="unit-card unit-fnb">
+          <div class="unit-card-title">
+            <span>☕ F&B (Nhà hàng / Bar)</span>
+            <span id="unit-fnb-count" class="badge badge-fnb">0 GD</span>
+          </div>
+          <div class="unit-stats-row">
+            <span>Thu:</span>
+            <span id="unit-fnb-income" class="text-positive font-bold">0 ₫</span>
+          </div>
+          <div class="unit-stats-row">
+            <span>Chi:</span>
+            <span id="unit-fnb-expense" class="text-negative font-bold">0 ₫</span>
+          </div>
+          <div class="unit-stats-row net-row">
+            <span>Chênh lệch:</span>
+            <span id="unit-fnb-net">0 ₫</span>
+          </div>
+        </div>
+
+        <!-- Văn phòng -->
+        <div class="unit-card unit-vanphong">
+          <div class="unit-card-title">
+            <span>🏢 Văn phòng / Hành chính</span>
+            <span id="unit-van-phong-count" class="badge badge-office">0 GD</span>
+          </div>
+          <div class="unit-stats-row">
+            <span>Thu:</span>
+            <span id="unit-van-phong-income" class="text-positive font-bold">0 ₫</span>
+          </div>
+          <div class="unit-stats-row">
+            <span>Chi:</span>
+            <span id="unit-van-phong-expense" class="text-negative font-bold">0 ₫</span>
+          </div>
+          <div class="unit-stats-row net-row">
+            <span>Chênh lệch:</span>
+            <span id="unit-van-phong-net">0 ₫</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. BỘ LỌC DỮ LIỆU -->
+      <div class="filter-panel">
+        <div class="filter-header">
+          <div class="filter-title">
+            <span>🔍 Bộ lọc giao dịch</span>
+          </div>
+          <div class="date-presets">
+            <button type="button" class="preset-btn" data-preset="today">Hôm nay</button>
+            <button type="button" class="preset-btn" data-preset="month">Tháng này</button>
+            <button type="button" class="preset-btn" data-preset="quarter">Quý này</button>
+            <button type="button" class="preset-btn active" data-preset="all">Tất cả</button>
+          </div>
+        </div>
+
+        <div class="filter-controls-grid">
+          <div class="filter-group">
+            <label for="filter-start-date">Từ ngày</label>
+            <input type="date" id="filter-start-date" class="form-control">
+          </div>
+
+          <div class="filter-group">
+            <label for="filter-end-date">Đến ngày</label>
+            <input type="date" id="filter-end-date" class="form-control">
+          </div>
+
+          <div class="filter-group">
+            <label for="filter-unit">Mảng hoạt động</label>
+            <select id="filter-unit" class="form-control">
+              <option value="">-- Tất cả mảng --</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label for="filter-type">Loại giao dịch</label>
+            <select id="filter-type" class="form-control">
+              <option value="">-- Thu & Chi --</option>
+              <option value="income">Thu tiền (+)</option>
+              <option value="expense">Chi tiền (-)</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label for="filter-category">Danh mục</label>
+            <select id="filter-category" class="form-control">
+              <option value="">-- Tất cả danh mục --</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label for="filter-payment">Hình thức</label>
+            <select id="filter-payment" class="form-control">
+              <option value="">-- Tất cả hình thức --</option>
+              <option value="cash">Tiền mặt</option>
+              <option value="bank_transfer">Chuyển khoản</option>
+              <option value="card">Thẻ ngân hàng</option>
+              <option value="other">Khác</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; margin-top: 0.85rem; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+          <div style="flex: 1; max-width: 450px;">
+            <input type="text" id="filter-search" class="form-control" placeholder="Tìm theo diễn giải, mã hóa đơn / chứng từ...">
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <button id="btn-apply-filter" class="btn btn-primary btn-sm">Áp dụng lọc</button>
+            <button id="btn-reset-filter" class="btn btn-outline btn-sm">Đặt lại</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. BẢNG DANH SÁCH GIAO DỊCH -->
+      <div class="table-panel">
+        <div class="table-header">
+          <div class="table-title-area">
+            <h3>Sổ Nhật ký Giao dịch</h3>
+            <span>Dữ liệu đồng bộ trực tiếp từ Supabase Database</span>
+          </div>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <a href="templates/mau_so_thu_chi_chung.xlsx" download="mau_so_thu_chi_chung.xlsx" class="btn btn-sm btn-outline" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px;" title="Tải file Excel mẫu để nhập dữ liệu">
+              📎 Tải mẫu Excel
+            </a>
+            <button type="button" class="btn btn-sm btn-outline btn-trigger-import" data-import-type="transactions" title="Nhập hàng loạt từ file Excel">
+              📥 Import Excel
+            </button>
+            <button id="btn-add-transaction" class="btn btn-primary">
+              + Thêm giao dịch mới
+            </button>
+          </div>
+        </div>
+
+        <!-- Loading spinner -->
+        <div id="table-loading" class="state-container hidden">
+          <div class="spinner"></div>
+          <div class="state-title">Đang tải dữ liệu từ Supabase...</div>
+        </div>
+
+        <!-- Empty state -->
+        <div id="table-empty" class="state-container hidden">
+          <div class="state-icon">📄</div>
+          <div class="state-title">Chưa có giao dịch nào</div>
+          <p>Không tìm thấy giao dịch nào phù hợp với bộ lọc hiện tại. Bấm nút <strong>"+ Thêm giao dịch mới"</strong> để ghi nhận giao dịch đầu tiên.</p>
+        </div>
+
+        <!-- Table Responsive -->
+        <div id="table-wrapper" class="table-responsive">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th style="width: 105px;">Ngày GD</th>
+                <th style="width: 120px;">Mảng</th>
+                <th style="width: 90px;">Loại</th>
+                <th style="width: 170px;">Danh mục</th>
+                <th style="width: 140px; text-align: right;">Số tiền (VND)</th>
+                <th style="width: 125px;">Hình thức</th>
+                <th>Diễn giải & Mã CT</th>
+                <th style="width: 110px; text-align: center;">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="transaction-tbody">
+              <!-- Render động bằng JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      </div>
+      <!-- HẾT VIEW 1: SỔ GIAO DỊCH THU CHI CHUNG -->
+
+      <!-- ================= VIEW 2: ĐỐI SOÁT BÁN HÀNG F&B ================= -->
+      <div id="view-fnb-reconciliation" class="app-view hidden">
+        
+        <!-- FORM NHẬP LIỆU ĐỐI SOÁT F&B TRỰC TIẾP TRÊN TRANG -->
+        <div id="inline-form-card" class="card inline-form-panel" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-sm); border-top: 4px solid var(--unit-fnb-color);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div>
+              <h3 id="inline-rec-form-title" style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem;">
+                <span>📝 Form Nhập Liệu Đối Soát Doanh Thu F&B Hàng Ngày</span>
+                <span id="inline-rec-badge-mode" class="badge badge-neutral" style="font-size: 0.75rem;">Tạo mới</span>
+              </h3>
+              <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">
+                Nhập doanh thu bán hàng KiotViet và số tiền thực thu (Tiền mặt + Chuyển khoản MB) theo ngày để đối chiếu chênh lệch và lưu Supabase
+              </p>
+            </div>
+            <button type="button" id="btn-inline-reset-form" class="btn btn-sm btn-outline" title="Làm mới form để nhập ngày khác">
+              🔄 Nhập ngày khác
+            </button>
+          </div>
+
+          <form id="form-inline-fnb-rec">
+            <input type="hidden" id="inline-rec-id">
+
+            <div class="filter-controls-grid" style="grid-template-columns: repeat(4, 1fr); gap: 1rem; align-items: flex-start;">
+              <!-- 1. Ngày đối soát -->
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="inline-rec-date">1. Ngày đối soát <span class="required">*</span></label>
+                <input type="date" id="inline-rec-date" class="form-control" required style="font-weight: 600;">
+                <small id="inline-date-hint" style="color: var(--text-muted); font-size: 0.76rem; margin-top: 3px;">Chọn ngày đối soát</small>
+              </div>
+
+              <!-- 2. Doanh thu KiotViet -->
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="inline-rec-kiotviet">2. DT KiotViet (VND) <span class="required">*</span></label>
+                <input type="number" id="inline-rec-kiotviet" class="form-control" placeholder="0" min="0" step="any" required style="font-size: 0.95rem; font-weight: 600;">
+                <small id="inline-rec-preview-kiotviet" style="color: var(--primary); font-size: 0.78rem; font-weight: 600; margin-top: 3px;">0 ₫</small>
+              </div>
+
+              <!-- 3. Thu Tiền mặt -->
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="inline-rec-cash">3. Thu Tiền mặt (VND) <span class="required">*</span></label>
+                <input type="number" id="inline-rec-cash" class="form-control" placeholder="0" min="0" step="any" required style="font-size: 0.95rem; font-weight: 600;">
+                <small id="inline-rec-preview-cash" style="color: var(--income-green); font-size: 0.78rem; font-weight: 600; margin-top: 3px;">0 ₫</small>
+              </div>
+
+              <!-- 4. Thu Chuyển khoản MB -->
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="inline-rec-mb">4. Thu Chuyển khoản MB (VND) <span class="required">*</span></label>
+                <input type="number" id="inline-rec-mb" class="form-control" placeholder="0" min="0" step="any" required style="font-size: 0.95rem; font-weight: 600;">
+                <small id="inline-rec-preview-mb" style="color: #0284c7; font-size: 0.78rem; font-weight: 600; margin-top: 3px;">0 ₫</small>
+              </div>
+            </div>
+
+            <!-- LIVE CALCULATION BOX -->
+            <div class="calc-summary-box" style="margin: 1.15rem 0 0.85rem 0;">
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; text-align: center;">
+                <div style="border-right: 1px solid var(--border-color); padding-right: 0.5rem;">
+                  <span style="font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase;">Doanh thu KiotViet</span>
+                  <div id="inline-rec-calc-kiotviet" style="font-size: 1.2rem; font-weight: 700; color: var(--text-main); margin-top: 2px;">0 ₫</div>
+                </div>
+                <div style="border-right: 1px solid var(--border-color); padding-right: 0.5rem;">
+                  <span style="font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase;">Tổng Thực Thu (Tiền mặt + MB)</span>
+                  <div id="inline-rec-calc-collected" style="font-size: 1.2rem; font-weight: 700; color: var(--income-green); margin-top: 2px;">0 ₫</div>
+                </div>
+                <div>
+                  <span style="font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase;">Chênh Lệch (Thực thu - KiotViet)</span>
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 2px;">
+                    <span id="inline-rec-calc-diff" style="font-size: 1.2rem; font-weight: 700;">0 ₫</span>
+                    <span id="inline-rec-calc-badge" class="badge badge-matched">Khớp 100%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CẢNH BÁO KHI CÓ CHÊNH LỆCH -->
+            <div id="inline-rec-diff-warning" class="reason-required-box hidden">
+              <strong>⚠️ Phát hiện chênh lệch thu tiền!</strong> Vui lòng nhập lý do giải thích cụ thể bên dưới (ví dụ: Khách nợ chưa trả, bo/tip nhân viên, giảm giá chưa cập nhật KiotViet, phí máy quẹt thẻ...).
+            </div>
+
+            <div class="two-col-grid" style="margin-top: 0.85rem;">
+              <!-- 5. Giải thích lý do -->
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="inline-rec-reason">5. Giải thích lý do chênh lệch <span id="inline-rec-reason-required-mark" class="required hidden">*</span></label>
+                <input type="text" id="inline-rec-reason" class="form-control" placeholder="Ghi rõ nguyên nhân thừa hoặc thiếu tiền (nếu có)...">
+              </div>
+
+              <!-- 6. Ghi chú thêm -->
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="inline-rec-notes">6. Ghi chú bổ sung (nếu có)</label>
+                <input type="text" id="inline-rec-notes" class="form-control" placeholder="Ca làm việc, thu ngân, ghi chú phụ...">
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.15rem; padding-top: 0.85rem; border-top: 1px solid #f1f5f9;">
+              <button type="submit" id="btn-save-inline-fnb-rec" class="btn btn-primary" style="padding: 0.65rem 1.6rem; font-size: 0.92rem;">
+                💾 Lưu Đối Soát vào Supabase
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- F&B RECONCILIATION KPI ROW -->
+        <div class="dashboard-grid">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Doanh thu KiotViet</span>
+              <span class="kpi-icon icon-income">🛒</span>
+            </div>
+            <div id="fnb-kpi-kiotviet" class="kpi-value">0 ₫</div>
+            <div class="kpi-footer">Tổng DT ghi nhận từ KiotViet</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Tiền mặt thực thu</span>
+              <span class="kpi-icon icon-count">💵</span>
+            </div>
+            <div id="fnb-kpi-cash" class="kpi-value text-positive">0 ₫</div>
+            <div class="kpi-footer">Tổng tiền mặt thu về tại quầy</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Chuyển khoản MB Bank</span>
+              <span class="kpi-icon icon-net">🏦</span>
+            </div>
+            <div id="fnb-kpi-mb" class="kpi-value text-positive">0 ₫</div>
+            <div class="kpi-footer">Tổng tiền CK vào tài khoản MB</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Tổng chênh lệch thu</span>
+              <span id="fnb-kpi-diff-badge" class="badge badge-neutral">Khớp</span>
+            </div>
+            <div id="fnb-kpi-diff" class="kpi-value">0 ₫</div>
+            <div class="kpi-footer">
+              <span>Thực thu: </span><strong id="fnb-kpi-total-collected" style="margin-left: 4px;">0 ₫</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- F&B FILTER PANEL -->
+        <div class="filter-panel">
+          <div class="filter-header">
+            <div class="filter-title">
+              <span>🔍 Bộ lọc đối soát F&B theo ngày</span>
+            </div>
+            <div class="date-presets">
+              <button type="button" class="preset-btn fnb-preset-btn" data-preset="today">Hôm nay</button>
+              <button type="button" class="preset-btn fnb-preset-btn" data-preset="month">Tháng này</button>
+              <button type="button" class="preset-btn fnb-preset-btn" data-preset="quarter">Quý này</button>
+              <button type="button" class="preset-btn fnb-preset-btn active" data-preset="all">Tất cả</button>
+            </div>
+          </div>
+
+          <div class="filter-controls-grid" style="grid-template-columns: repeat(4, 1fr);">
+            <div class="filter-group">
+              <label for="fnb-filter-start-date">Từ ngày</label>
+              <input type="date" id="fnb-filter-start-date" class="form-control">
+            </div>
+
+            <div class="filter-group">
+              <label for="fnb-filter-end-date">Đến ngày</label>
+              <input type="date" id="fnb-filter-end-date" class="form-control">
+            </div>
+
+            <div class="filter-group">
+              <label for="fnb-filter-status">Trạng thái chênh lệch</label>
+              <select id="fnb-filter-status" class="form-control">
+                <option value="all">-- Tất cả trạng thái --</option>
+                <option value="matched">Khớp chuẩn 100% (0 ₫)</option>
+                <option value="discrepant">Có chênh lệch (!= 0 ₫)</option>
+                <option value="surplus">Thừa tiền thực thu (+)</option>
+                <option value="deficit">Thiếu tiền thực thu (-)</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label for="fnb-filter-search">Tìm lý do / ghi chú</label>
+              <input type="text" id="fnb-filter-search" class="form-control" placeholder="Tìm giải trình chênh lệch...">
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.85rem;">
+            <button id="btn-fnb-apply-filter" class="btn btn-primary btn-sm">Áp dụng lọc</button>
+            <button id="btn-fnb-reset-filter" class="btn btn-outline btn-sm">Đặt lại</button>
+          </div>
+        </div>
+
+        <!-- F&B RECONCILIATION TABLE PANEL -->
+        <div class="table-panel">
+          <div class="table-header">
+            <div class="table-title-area">
+              <h3>Bảng Đối soát Doanh thu Bán hàng F&B theo Ngày</h3>
+              <span>So sánh Doanh thu KiotViet với Thực thu (Tiền mặt + Chuyển khoản MB)</span>
+            </div>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <a href="templates/mau_doi_soat_fnb.xlsx" download="mau_doi_soat_fnb.xlsx" class="btn btn-sm btn-outline" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px;" title="Tải file Excel mẫu đối soát F&B">
+              📎 Tải mẫu Excel
+            </a>
+            <button type="button" class="btn btn-sm btn-outline btn-trigger-import" data-import-type="fnb_reconciliation" title="Nhập dữ liệu đối soát F&B từ Excel">
+              📥 Import Excel
+            </button>
+            <button id="btn-add-fnb-rec" class="btn btn-primary">
+              + Tạo đối soát ngày mới
+            </button>
+          </div>
+          </div>
+
+          <!-- Loading -->
+          <div id="fnb-table-loading" class="state-container hidden">
+            <div class="spinner"></div>
+            <div class="state-title">Đang tải dữ liệu đối soát từ Supabase...</div>
+          </div>
+
+          <!-- Empty -->
+          <div id="fnb-table-empty" class="state-container hidden">
+            <div class="state-icon">⚖️</div>
+            <div class="state-title">Chưa có bản ghi đối soát nào</div>
+            <p>Bấm nút <strong>"+ Tạo đối soát ngày mới"</strong> để nhập dữ liệu doanh thu KiotViet và tiền thực thu theo ngày.</p>
+          </div>
+
+          <!-- Table -->
+          <div id="fnb-table-wrapper" class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th style="width: 110px;">Ngày đối soát</th>
+                  <th style="width: 140px; text-align: right;">DT KiotViet</th>
+                  <th style="width: 130px; text-align: right;">Tiền mặt</th>
+                  <th style="width: 140px; text-align: right;">CK MB Bank</th>
+                  <th style="width: 140px; text-align: right;">Tổng thực thu</th>
+                  <th style="width: 130px; text-align: right;">Chênh lệch</th>
+                  <th style="width: 115px; text-align: center;">Trạng thái</th>
+                  <th>Giải thích lý do chênh lệch</th>
+                  <th style="width: 100px; text-align: center;">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="fnb-rec-tbody">
+                <!-- Render bằng JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+      <!-- HẾT VIEW 2: ĐỐI SOÁT BÁN HÀNG F&B -->
+
+      <!-- ================= VIEW 3: CHI PHÍ LƯƠNG & CHUYỂN KHOẢN THEO MÃ HOẠT ĐỘNG ================= -->
+      <div id="view-salary-bank" class="app-view hidden">
+
+        <!-- FORM NHẬP LIỆU TRỰC TIẾP TRÊN TRANG -->
+        <div id="inline-sb-form-card" class="card inline-form-panel" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-sm); border-top: 4px solid #7c3aed;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div>
+              <h3 id="inline-sb-form-title" style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem;">
+                <span>💳 Nhập Chi Phí Lương & Chuyển Khoản Theo Mảng</span>
+                <span id="inline-sb-badge-mode" class="badge badge-neutral" style="font-size: 0.75rem;">Tạo mới</span>
+              </h3>
+              <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">
+                Quản lý chi lương nhân viên và các khoản chi chuyển khoản có gắn mã hoạt động (Sơn Mài, F&B, Văn phòng) để phục vụ báo cáo
+              </p>
+            </div>
+            <button type="button" id="btn-sb-reset-form" class="btn btn-sm btn-outline" title="Làm mới form để nhập khoản mới">
+              🔄 Làm mới form
+            </button>
+          </div>
+
+          <form id="form-inline-salary-bank">
+            <input type="hidden" id="sb-id">
+
+            <!-- HÀNG 1: NGÀY, MẢNG, PHÂN LOẠI, DANH MỤC -->
+            <div class="filter-controls-grid" style="grid-template-columns: 1fr 1fr 1.2fr 1.3fr; gap: 1rem; align-items: flex-start; margin-bottom: 1rem;">
+              <!-- 1. Ngày chi -->
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="sb-date">1. Ngày chi tiền <span class="required">*</span></label>
+                <input type="date" id="sb-date" class="form-control" required style="font-weight: 600;">
+              </div>
+
+              <!-- 2. Mảng hoạt động -->
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="sb-unit">2. Mảng hoạt động <span class="required">*</span></label>
+                <select id="sb-unit" class="form-control" required style="font-weight: 600;">
+                  <option value="">-- Chọn mảng --</option>
+                </select>
+              </div>
+
+              <!-- 3. Phân loại chi -->
+              <div class="form-group" style="margin-bottom: 0;">
+                <label>3. Phân loại chi <span class="required">*</span></label>
+                <div class="type-selector" style="display: flex; gap: 0.35rem;">
+                  <button type="button" id="btn-sb-type-salary" class="type-btn" style="padding: 0.5rem 0.6rem; font-size: 0.82rem;">
+                    👥 Chi Lương
+                  </button>
+                  <button type="button" id="btn-sb-type-transfer" class="type-btn active type-expense" style="padding: 0.5rem 0.6rem; font-size: 0.82rem;">
+                    🏦 Chi CK khác
+                  </button>
+                </div>
+                <input type="hidden" id="sb-type" value="bank_transfer">
+              </div>
+
+              <!-- 4. Danh mục chi phí -->
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="sb-category">4. Khoản mục chi phí <span class="required">*</span></label>
+                <select id="sb-category" class="form-control" required>
+                  <!-- Render động theo phân loại -->
+                </select>
+              </div>
+            </div>
+
+            <!-- HÀNG 2: NGƯỜI NHẬN, SỐ TIỀN, TÀI KHOẢN TRÍCH CHI -->
+            <div class="filter-controls-grid" style="grid-template-columns: 1.5fr 1.2fr 1.3fr; gap: 1rem; align-items: flex-start; margin-bottom: 1rem;">
+              <!-- 5. Người nhận / Nhân viên / NCC -->
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="sb-recipient">5. Người nhận / Nhân viên / NCC <span class="required">*</span></label>
+                <input type="text" id="sb-recipient" class="form-control" placeholder="Ví dụ: Nguyễn Văn A (Nhân viên) hoặc Cty Bao Bì..." required>
+              </div>
+
+              <!-- 6. Số tiền chi -->
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="sb-amount">6. Số tiền chi (VND) <span class="required">*</span></label>
+                <input type="number" id="sb-amount" class="form-control" placeholder="0" min="1" step="any" required style="font-weight: 700; color: var(--expense-red); font-size: 1rem;">
+                <small id="sb-amount-preview" style="color: var(--expense-red); font-size: 0.8rem; font-weight: 600; margin-top: 3px;">0 ₫</small>
+              </div>
+
+              <!-- 7. Ngân hàng trích chi -->
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="sb-source-bank">7. Tài khoản trích chi</label>
+                <input type="text" id="sb-source-bank" class="form-control" value="MB Bank" placeholder="MB Bank, Tiền mặt...">
+              </div>
+            </div>
+
+            <!-- HÀNG 3: NGÂN HÀNG NHẬN, SỐ TÀI KHOẢN, MÃ UNC -->
+            <div class="filter-controls-grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 1rem; align-items: flex-start; margin-bottom: 1rem;">
+              <!-- 8. Ngân hàng nhận -->
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="sb-recipient-bank">8. Ngân hàng người nhận</label>
+                <input type="text" id="sb-recipient-bank" class="form-control" placeholder="Ví dụ: MB, Vietcombank, Techcombank...">
+              </div>
+
+              <!-- 9. Số tài khoản nhận -->
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="sb-recipient-account">9. Số tài khoản người nhận</label>
+                <input type="text" id="sb-recipient-account" class="form-control" placeholder="Nhập số tài khoản ngân hàng...">
+              </div>
+
+              <!-- 10. Mã giao dịch / UNC -->
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="sb-ref">10. Mã GD ngân hàng / Số UNC</label>
+                <input type="text" id="sb-ref" class="form-control" placeholder="Ví dụ: FT2409..., UNC-102...">
+              </div>
+            </div>
+
+            <!-- HÀNG 4: NỘI DUNG CHUYỂN KHOẢN & GHI CHÚ -->
+            <div class="two-col-grid" style="margin-bottom: 1rem;">
+              <!-- 11. Diễn giải / Nội dung CK -->
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="sb-desc">11. Nội dung chuyển khoản / Diễn giải</label>
+                <input type="text" id="sb-desc" class="form-control" placeholder="Nội dung chuyển khoản chi tiết...">
+              </div>
+
+              <!-- 12. Ghi chú thêm -->
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="sb-notes">12. Ghi chú nội bộ</label>
+                <input type="text" id="sb-notes" class="form-control" placeholder="Ghi chú thêm về chứng từ, duyệt chi...">
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem; padding-top: 0.85rem; border-top: 1px solid #f1f5f9;">
+              <button type="submit" id="btn-save-salary-bank" class="btn btn-primary" style="padding: 0.65rem 1.6rem; font-size: 0.92rem; background: #7c3aed;">
+                💾 Lưu Khoản Chi vào Supabase
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 4 THẺ KPI BÁO CÁO CHI PHÍ THEO MẢNG -->
+        <div class="dashboard-grid">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Tổng chi trong kỳ</span>
+              <span class="kpi-icon icon-expense">💳</span>
+            </div>
+            <div id="sb-kpi-total" class="kpi-value text-negative">0 ₫</div>
+            <div class="kpi-footer">
+              <span id="sb-kpi-sub-stats">Lương: 0 ₫ | CK khác: 0 ₫</span>
+            </div>
+          </div>
+
+          <div class="kpi-card" style="border-top: 3px solid var(--unit-sonmai-color);">
+            <div class="kpi-header">
+              <span class="kpi-title">Mảng Sơn Mài</span>
+              <span class="badge badge-sonmai">SƠN MÀI</span>
+            </div>
+            <div id="sb-kpi-sonmai" class="kpi-value">0 ₫</div>
+            <div class="kpi-footer">
+              <span id="sb-kpi-sonmai-count">0 khoản chi</span>
+            </div>
+          </div>
+
+          <div class="kpi-card" style="border-top: 3px solid var(--unit-fnb-color);">
+            <div class="kpi-header">
+              <span class="kpi-title">Mảng F&B</span>
+              <span class="badge badge-fnb">F&B</span>
+            </div>
+            <div id="sb-kpi-fnb" class="kpi-value">0 ₫</div>
+            <div class="kpi-footer">
+              <span id="sb-kpi-fnb-count">0 khoản chi</span>
+            </div>
+          </div>
+
+          <div class="kpi-card" style="border-top: 3px solid var(--unit-office-color);">
+            <div class="kpi-header">
+              <span class="kpi-title">Mảng Văn phòng</span>
+              <span class="badge badge-office">VĂN PHÒNG</span>
+            </div>
+            <div id="sb-kpi-vanphong" class="kpi-value">0 ₫</div>
+            <div class="kpi-footer">
+              <span id="sb-kpi-vanphong-count">0 khoản chi</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- BỘ LỌC CHI PHÍ THEO MẢNG -->
+        <div class="filter-panel">
+          <div class="filter-header">
+            <div class="filter-title">
+              <span>🔍 Bộ lọc chi phí theo mảng & thời gian</span>
+            </div>
+            <div class="date-presets">
+              <button type="button" class="preset-btn sb-preset-btn" data-preset="today">Hôm nay</button>
+              <button type="button" class="preset-btn sb-preset-btn" data-preset="month">Tháng này</button>
+              <button type="button" class="preset-btn sb-preset-btn" data-preset="quarter">Quý này</button>
+              <button type="button" class="preset-btn sb-preset-btn active" data-preset="all">Tất cả</button>
+            </div>
+          </div>
+
+          <div class="filter-controls-grid" style="grid-template-columns: repeat(5, 1fr);">
+            <div class="filter-group">
+              <label for="sb-filter-start-date">Từ ngày</label>
+              <input type="date" id="sb-filter-start-date" class="form-control">
+            </div>
+
+            <div class="filter-group">
+              <label for="sb-filter-end-date">Đến ngày</label>
+              <input type="date" id="sb-filter-end-date" class="form-control">
+            </div>
+
+            <div class="filter-group">
+              <label for="sb-filter-unit">Mảng hoạt động</label>
+              <select id="sb-filter-unit" class="form-control">
+                <option value="">-- Tất cả mảng --</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label for="sb-filter-type">Phân loại chi</label>
+              <select id="sb-filter-type" class="form-control">
+                <option value="all">-- Lương & Chuyển khoản --</option>
+                <option value="salary">Chi Lương Nhân Sự</option>
+                <option value="bank_transfer">Chi Chuyển Khoản Hoạt Động</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label for="sb-filter-search">Tìm người nhận / UNC</label>
+              <input type="text" id="sb-filter-search" class="form-control" placeholder="Tên, STK, mã UNC, diễn giải...">
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.85rem;">
+            <button id="btn-sb-apply-filter" class="btn btn-primary btn-sm">Áp dụng lọc</button>
+            <button id="btn-sb-reset-filter" class="btn btn-outline btn-sm">Đặt lại</button>
+          </div>
+        </div>
+
+        <!-- BẢNG DANH SÁCH CHI PHÍ -->
+        <div class="table-panel">
+          <div class="table-header">
+            <div class="table-title-area">
+              <h3>Sổ Chi Lương & Chuyển Khoản</h3>
+              <span>Chi tiết các khoản chi gắn mã hoạt động, phục vụ lập báo cáo doanh thu chi phí</span>
+            </div>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <a href="templates/mau_chi_luong_chuyen_khoan.xlsx" download="mau_chi_luong_chuyen_khoan.xlsx" class="btn btn-sm btn-outline" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px;" title="Tải file Excel mẫu chi lương và chuyển khoản">
+              📎 Tải mẫu Excel
+            </a>
+            <button type="button" class="btn btn-sm btn-outline btn-trigger-import" data-import-type="salary_bank" title="Nhập danh sách chi phí lương và chuyển khoản từ Excel">
+              📥 Import Excel
+            </button>
+            <button id="btn-add-salary-bank" class="btn btn-primary" style="background: #7c3aed;">
+              + Nhập khoản chi mới
+            </button>
+          </div>
+          </div>
+
+          <!-- Loading -->
+          <div id="sb-table-loading" class="state-container hidden">
+            <div class="spinner"></div>
+            <div class="state-title">Đang tải dữ liệu chi phí từ Supabase...</div>
+          </div>
+
+          <!-- Empty -->
+          <div id="sb-table-empty" class="state-container hidden">
+            <div class="state-icon">💳</div>
+            <div class="state-title">Chưa có khoản chi nào</div>
+            <p>Sử dụng <strong>Form Nhập Chi Phí</strong> ở phía trên để ghi nhận các khoản chi lương và chi chuyển khoản theo mảng hoạt động.</p>
+          </div>
+
+          <!-- Table -->
+          <div id="sb-table-wrapper" class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th style="width: 105px;">Ngày chi</th>
+                  <th style="width: 120px;">Mảng</th>
+                  <th style="width: 140px;">Khoản mục chi</th>
+                  <th style="width: 160px;">Người nhận / Đơn vị</th>
+                  <th style="width: 140px; text-align: right;">Số tiền chi (VND)</th>
+                  <th style="width: 150px;">Ngân hàng & STK</th>
+                  <th>Mã UNC & Diễn giải</th>
+                  <th style="width: 100px; text-align: center;">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="sb-tbody">
+                <!-- Render bằng JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+      <!-- HẾT VIEW 3: CHI PHÍ LƯƠNG & CHUYỂN KHOẢN -->
+
+    </section>
+
+  </main>
+
+  <!-- ================= MODAL: THÊM / SỬA GIAO DỊCH ================= -->
+  <div id="modal-transaction" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-transaction-title">Thêm Giao dịch Mới</h3>
+        <button type="button" class="close-btn" data-close-modal>&times;</button>
+      </div>
+
+      <form id="form-transaction">
+        <input type="hidden" id="tx-id">
+
+        <div class="modal-body">
+          <!-- Phân loại Thu / Chi -->
+          <div class="form-group">
+            <label>Loại giao dịch <span class="required">*</span></label>
+            <div class="type-selector">
+              <button type="button" id="btn-type-income" class="type-btn active type-income">
+                ▲ Thu tiền (+)
+              </button>
+              <button type="button" id="btn-type-expense" class="type-btn type-expense">
+                ▼ Chi tiền (-)
+              </button>
+            </div>
+            <input type="hidden" id="tx-type" value="income">
+          </div>
+
+          <div class="two-col-grid">
+            <!-- Ngày giao dịch -->
+            <div class="form-group">
+              <label for="tx-date">Ngày giao dịch <span class="required">*</span></label>
+              <input type="date" id="tx-date" class="form-control" required>
+            </div>
+
+            <!-- Mảng hoạt động -->
+            <div class="form-group">
+              <label for="tx-unit">Mảng hoạt động <span class="required">*</span></label>
+              <select id="tx-unit" class="form-control" required>
+                <option value="">-- Chọn mảng --</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Danh mục -->
+          <div class="form-group">
+            <label for="tx-category">Danh mục thu / chi</label>
+            <select id="tx-category" class="form-control">
+              <option value="">-- Chọn danh mục --</option>
+            </select>
+          </div>
+
+          <div class="two-col-grid">
+            <!-- Số tiền -->
+            <div class="form-group">
+              <label for="tx-amount">Số tiền (VND) <span class="required">*</span></label>
+              <input type="number" id="tx-amount" class="form-control" placeholder="Ví dụ: 500000" min="1" step="any" required>
+              <small id="amount-preview" style="color: var(--text-muted); font-size: 0.78rem; margin-top: 2px;">0 ₫</small>
+            </div>
+
+            <!-- Hình thức thanh toán -->
+            <div class="form-group">
+              <label for="tx-payment">Hình thức thanh toán <span class="required">*</span></label>
+              <select id="tx-payment" class="form-control" required>
+                <option value="cash">Tiền mặt</option>
+                <option value="bank_transfer">Chuyển khoản</option>
+                <option value="card">Thẻ ngân hàng</option>
+                <option value="other">Khác</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Diễn giải -->
+          <div class="form-group">
+            <label for="tx-description">Diễn giải / Nội dung chi tiết</label>
+            <input type="text" id="tx-description" class="form-control" placeholder="Nhập diễn giải lý do thu / chi...">
+          </div>
+
+          <!-- Mã chứng từ / Số tham chiếu -->
+          <div class="form-group">
+            <label for="tx-reference">Mã chứng từ / Số hóa đơn (nếu có)</label>
+            <input type="text" id="tx-reference" class="form-control" placeholder="Ví dụ: HD-00124, UNC-992...">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" data-close-modal>Hủy bỏ</button>
+          <button type="submit" id="btn-save-tx" class="btn btn-primary">Lưu giao dịch</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: XÁC NHẬN XÓA ================= -->
+  <div id="modal-delete" class="modal-overlay">
+    <div class="modal-content" style="max-width: 420px;">
+      <div class="modal-header">
+        <h3>Xác nhận xóa giao dịch</h3>
+        <button type="button" class="close-btn" data-close-modal>&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Bạn có chắc chắn muốn xóa vĩnh viễn giao dịch này khỏi cơ sở dữ liệu Supabase không?</p>
+        <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Hành động này không thể hoàn tác.</p>
+        <input type="hidden" id="delete-target-id">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" data-close-modal>Hủy</button>
+        <button type="button" id="btn-confirm-delete" class="btn btn-danger">Xóa giao dịch</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: CẤU HÌNH SUPABASE ================= -->
+  <div id="modal-config" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Cấu hình Kết nối Supabase</h3>
+        <button type="button" class="close-btn" data-close-modal>&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Kết nối trực tiếp website với dự án Supabase <strong>Quanlythuchi</strong> của bạn.
+        </p>
+
+        <div class="form-group">
+          <label>Project URL</label>
+          <input type="text" id="config-url" class="form-control" readonly value="https://wszzjfkkswuilksznlme.supabase.co">
+        </div>
+
+        <div class="form-group">
+          <label for="config-anon-key">Supabase Anon Key (public) <span class="required">*</span></label>
+          <input type="text" id="config-anon-key" class="form-control" placeholder="eyJh...... (dán anon public key vào đây)">
+        </div>
+
+        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.85rem; font-size: 0.82rem; line-height: 1.6;">
+          <strong>💡 Hướng dẫn lấy Anon Key từ Supabase:</strong>
+          <ol style="margin-left: 1.25rem; margin-top: 0.25rem;">
+            <li>Đăng nhập <a href="https://supabase.com/dashboard/project/wszzjfkkswuilksznlme/settings/api" target="_blank" style="color: var(--primary);">Supabase Dashboard</a>.</li>
+            <li>Chọn dự án <strong>Quanlythuchi</strong> &rarr; <strong>Project Settings</strong> &rarr; <strong>API</strong>.</li>
+            <li>Tìm mục <strong>Project API keys</strong>, sao chép khóa <code>anon public</code> và dán vào ô bên trên.</li>
+          </ol>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" data-close-modal>Đóng</button>
+        <button type="button" id="btn-save-config" class="btn btn-primary">Lưu & Kết nối</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: THÊM / SỬA ĐỐI SOÁT F&B ================= -->
+  <div id="modal-fnb-rec" class="modal-overlay">
+    <div class="modal-content" style="max-width: 620px;">
+      <div class="modal-header">
+        <h3 id="modal-fnb-rec-title">Tạo Đối soát Bán hàng Ngày F&B</h3>
+        <button type="button" class="close-btn" data-close-modal>&times;</button>
+      </div>
+
+      <form id="form-fnb-rec">
+        <input type="hidden" id="rec-id">
+
+        <div class="modal-body">
+          <!-- Ngày đối soát -->
+          <div class="form-group">
+            <label for="rec-date">Ngày đối soát <span class="required">*</span></label>
+            <input type="date" id="rec-date" class="form-control" required>
+            <small style="color: var(--text-muted); font-size: 0.78rem;">Dữ liệu đối soát được lưu theo từng ngày riêng biệt trên Supabase.</small>
+          </div>
+
+          <!-- Doanh thu KiotViet -->
+          <div class="form-group">
+            <label for="rec-kiotviet">Doanh thu bán hàng KiotViet (VND) <span class="required">*</span></label>
+            <input type="number" id="rec-kiotviet" class="form-control" placeholder="0" min="0" step="any" required>
+            <small id="rec-preview-kiotviet" style="color: var(--text-muted); font-size: 0.78rem;">0 ₫</small>
+          </div>
+
+          <!-- 2 Cột: Tiền mặt, CK MB -->
+          <div class="two-col-grid">
+            <div class="form-group">
+              <label for="rec-cash">Thu Tiền mặt thực tế (VND) <span class="required">*</span></label>
+              <input type="number" id="rec-cash" class="form-control" placeholder="0" min="0" step="any" required>
+              <small id="rec-preview-cash" style="color: var(--text-muted); font-size: 0.78rem;">0 ₫</small>
+            </div>
+
+            <div class="form-group">
+              <label for="rec-mb">Thu Chuyển khoản MB Bank (VND) <span class="required">*</span></label>
+              <input type="number" id="rec-mb" class="form-control" placeholder="0" min="0" step="any" required>
+              <small id="rec-preview-mb" style="color: var(--text-muted); font-size: 0.78rem;">0 ₫</small>
+            </div>
+          </div>
+
+          <!-- LIVE CALCULATION SUMMARY BOX -->
+          <div class="calc-summary-box">
+            <div class="calc-row">
+              <span>Doanh thu KiotViet:</span>
+              <strong id="rec-calc-kiotviet">0 ₫</strong>
+            </div>
+            <div class="calc-row">
+              <span>Tổng thực thu (Tiền mặt + MB):</span>
+              <strong id="rec-calc-collected" class="text-positive">0 ₫</strong>
+            </div>
+            <div class="calc-row highlight">
+              <span>Chênh lệch (Thực thu - KiotViet):</span>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span id="rec-calc-diff">0 ₫</span>
+                <span id="rec-calc-badge" class="badge badge-matched">Khớp</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- CẢNH BÁO LÝ DO KHI CÓ CHÊNH LỆCH -->
+          <div id="rec-diff-warning" class="reason-required-box hidden">
+            <strong>⚠️ Có chênh lệch thu tiền!</strong> Vui lòng nhập lý do giải thích chi tiết bên dưới.
+          </div>
+
+          <!-- Giải thích lý do -->
+          <div class="form-group">
+            <label for="rec-reason">Giải thích lý do chênh lệch <span id="rec-reason-required-mark" class="required hidden">*</span></label>
+            <textarea id="rec-reason" class="form-control" rows="2" placeholder="Ví dụ: Khách nợ chưa trả, bo/tip nhân viên, giảm giá chưa cập nhật kịp KiotViet..."></textarea>
+          </div>
+
+          <!-- Ghi chú bổ sung -->
+          <div class="form-group">
+            <label for="rec-notes">Ghi chú bổ sung (nếu có)</label>
+            <input type="text" id="rec-notes" class="form-control" placeholder="Ghi chú thêm về ca làm việc, thu ngân...">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" data-close-modal>Hủy bỏ</button>
+          <button type="submit" id="btn-save-fnb-rec" class="btn btn-primary">Lưu Đối Soát vào Supabase</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL XÓA ĐỐI SOÁT F&B -->
+  <div id="modal-fnb-delete" class="modal-overlay">
+    <div class="modal-content" style="max-width: 420px;">
+      <div class="modal-header">
+        <h3>Xác nhận xóa đối soát</h3>
+        <button type="button" class="close-btn" data-close-modal>&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Bạn có chắc chắn muốn xóa bản ghi đối soát ngày này khỏi Supabase không?</p>
+        <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Hành động này không thể hoàn tác.</p>
+        <input type="hidden" id="fnb-delete-target-id">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" data-close-modal>Hủy</button>
+        <button type="button" id="btn-confirm-fnb-delete" class="btn btn-danger">Xóa bản ghi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL XÓA CHI PHÍ LƯƠNG & CHUYỂN KHOẢN -->
+  <div id="modal-sb-delete" class="modal-overlay">
+    <div class="modal-content" style="max-width: 420px;">
+      <div class="modal-header">
+        <h3>Xác nhận xóa khoản chi</h3>
+        <button type="button" class="close-btn" data-close-modal>&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Bạn có chắc chắn muốn xóa bản ghi chi phí này khỏi Supabase không?</p>
+        <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Hành động này không thể hoàn tác.</p>
+        <input type="hidden" id="sb-delete-target-id">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" data-close-modal>Hủy</button>
+        <button type="button" id="btn-confirm-sb-delete" class="btn btn-danger">Xóa bản ghi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: TẢI FILE EXCEL MẪU & IMPORT DỮ LIỆU ================= -->
+  <div id="modal-excel-import" class="modal-overlay">
+    <div class="modal-content" style="max-width: 640px;">
+      <div class="modal-header">
+        <h3 id="modal-excel-title">📥 Tải Mẫu Excel & Import Dữ Liệu</h3>
+        <button type="button" class="close-btn" data-close-modal>&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Bước 1: Chọn mẫu tải về -->
+        <div style="background: var(--bg-hover, #f8fafc); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1.25rem;">
+          <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+            <span>📎 Bước 1: Tải tệp Excel mẫu đính kèm</span>
+          </h4>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+            Tải các file mẫu Excel chuẩn để điền dữ liệu trước khi nhập vào hệ thống:
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <a href="templates/mau_so_thu_chi_chung.xlsx" download="mau_so_thu_chi_chung.xlsx" class="btn btn-sm btn-outline" style="text-decoration: none; justify-content: space-between; display: flex; align-items: center;">
+              <span>📑 <strong>Mẫu 1: Sổ Thu Chi Chung</strong> (Sơn Mài, F&B, Văn phòng)</span>
+              <span style="color: var(--primary-color); font-weight: 600;">Tải về .xlsx ⬇️</span>
+            </a>
+            <a href="templates/mau_doi_soat_fnb.xlsx" download="mau_doi_soat_fnb.xlsx" class="btn btn-sm btn-outline" style="text-decoration: none; justify-content: space-between; display: flex; align-items: center;">
+              <span>⚖️ <strong>Mẫu 2: Đối Soát Bán Hàng F&B</strong> (KiotViet vs MB & Tiền mặt)</span>
+              <span style="color: var(--primary-color); font-weight: 600;">Tải về .xlsx ⬇️</span>
+            </a>
+            <a href="templates/mau_chi_luong_chuyen_khoan.xlsx" download="mau_chi_luong_chuyen_khoan.xlsx" class="btn btn-sm btn-outline" style="text-decoration: none; justify-content: space-between; display: flex; align-items: center;">
+              <span>💳 <strong>Mẫu 3: Chi Lương & Chuyển Khoản</strong> (Có gắn mã mảng)</span>
+              <span style="color: var(--primary-color); font-weight: 600;">Tải về .xlsx ⬇️</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Bước 2: Chọn loại dữ liệu và upload file -->
+        <div>
+          <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+            <span>📂 Bước 2: Chọn tệp Excel để Import vào Supabase</span>
+          </h4>
+
+          <div class="form-group">
+            <label for="excel-target-type">Phần dữ liệu cần nhập <span class="required">*</span></label>
+            <select id="excel-target-type" class="form-control" style="font-weight: 600;">
+              <option value="transactions">📑 Sổ Thu Chi Chung</option>
+              <option value="fnb_reconciliation">⚖️ Đối Soát Doanh Thu F&B Theo Ngày</option>
+              <option value="salary_bank">💳 Chi Lương & Chuyển Khoản Theo Mảng</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="excel-file-input">Chọn file Excel (.xlsx hoặc .xls) <span class="required">*</span></label>
+            <input type="file" id="excel-file-input" class="form-control" accept=".xlsx, .xls" style="padding: 0.5rem;">
+            <small style="color: var(--text-muted); font-size: 0.78rem;">Hỗ trợ định dạng .xlsx từ Excel 2007 trở lên.</small>
+          </div>
+
+          <!-- Thông báo kết quả preview / error -->
+          <div id="excel-preview-box" class="hidden" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 0.75rem 1rem; margin-top: 0.75rem;">
+            <div id="excel-preview-text" style="font-size: 0.88rem; color: #166534; font-weight: 600;"></div>
+          </div>
+          <div id="excel-error-box" class="hidden" style="background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-sm); padding: 0.75rem 1rem; margin-top: 0.75rem; max-height: 140px; overflow-y: auto;">
+            <div id="excel-error-text" style="font-size: 0.82rem; color: #991b1b; white-space: pre-wrap;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" data-close-modal>Đóng</button>
+        <button type="button" id="btn-submit-excel-import" class="btn btn-primary">
+          🚀 Bắt đầu Import vào Supabase
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATIONS -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- CDN THƯ VIỆN SUPABASE CHÍNH THỨC -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- THƯ VIỆN ĐỌC GHI EXCEL CHÍNH THỨC (SHEETJS) -->
+  <script src="js/xlsx.full.min.js"></script>
+
+  <!-- SCRIPTS DỰ ÁN -->
+  <script src="js/supabase-config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/transactions.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/fnb-reconciliation.js"></script>
+  <script src="js/salary-bank-expenses.js"></script>
+  <script src="js/excel-import.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

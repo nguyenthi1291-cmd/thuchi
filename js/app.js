@@ -1,0 +1,2098 @@
+// ============================================================
+// APP CONTROLLER (MAIN APPLICATION LOGIC)
+// Điều phối tương tác giao diện, sự kiện, Modal, Filter & Toasts
+// ============================================================
+
+(function () {
+  "use strict";
+
+  // Application State
+  const AppState = {
+    businessUnits: [],
+    categories: [],
+    cashAccounts: [],
+    currentTransactions: [],
+    editingTransactionId: null,
+    currentFnbReconciliations: [],
+    editingFnbRecId: null,
+    currentSalaryBankExpenses: [],
+    editingSalaryBankExpenseId: null
+  };
+
+  // DOM Elements
+  const DOM = {
+    // Nav Tabs & Views
+    mainNavTabs: document.getElementById("main-nav-tabs"),
+    navBtnTransactions: document.getElementById("nav-btn-transactions"),
+    navBtnFnbRec: document.getElementById("nav-btn-fnb-rec"),
+    navBtnSalaryBank: document.getElementById("nav-btn-salary-bank"),
+    viewTransactions: document.getElementById("view-transactions"),
+    viewFnbRec: document.getElementById("view-fnb-reconciliation"),
+    viewSalaryBank: document.getElementById("view-salary-bank"),
+
+    // Config
+    configAlertBanner: document.getElementById("config-alert-banner"),
+    btnOpenConfigBanner: document.getElementById("btn-open-config-banner"),
+    btnConfig: document.getElementById("btn-config"),
+    modalConfig: document.getElementById("modal-config"),
+    configAnonKey: document.getElementById("config-anon-key"),
+    btnSaveConfig: document.getElementById("btn-save-config"),
+
+    // Auth
+    authSection: document.getElementById("auth-section"),
+    tabLogin: document.getElementById("tab-login"),
+    tabRegister: document.getElementById("tab-register"),
+    formLogin: document.getElementById("form-login"),
+    formRegister: document.getElementById("form-register"),
+    btnSubmitLogin: document.getElementById("btn-submit-login"),
+    btnSubmitRegister: document.getElementById("btn-submit-register"),
+    loginEmail: document.getElementById("login-email"),
+    loginPassword: document.getElementById("login-password"),
+    regEmail: document.getElementById("reg-email"),
+    regPassword: document.getElementById("reg-password"),
+    authMsgBox: document.getElementById("auth-message-box"),
+
+    // Header & User
+    userInfoArea: document.getElementById("user-info-area"),
+    userEmailDisplay: document.getElementById("user-email-display"),
+    btnLogout: document.getElementById("btn-logout"),
+
+    // Main App
+    appSection: document.getElementById("app-section"),
+
+    // Filters (Transactions)
+    filterStartDate: document.getElementById("filter-start-date"),
+    filterEndDate: document.getElementById("filter-end-date"),
+    filterUnit: document.getElementById("filter-unit"),
+    filterType: document.getElementById("filter-type"),
+    filterCategory: document.getElementById("filter-category"),
+    filterPayment: document.getElementById("filter-payment"),
+    filterSearch: document.getElementById("filter-search"),
+    btnApplyFilter: document.getElementById("btn-apply-filter"),
+    btnResetFilter: document.getElementById("btn-reset-filter"),
+    presetBtns: document.querySelectorAll(".preset-btn:not(.fnb-preset-btn)"),
+
+    // Table (Transactions)
+    tableWrapper: document.getElementById("table-wrapper"),
+    tableLoading: document.getElementById("table-loading"),
+    tableEmpty: document.getElementById("table-empty"),
+    transactionTbody: document.getElementById("transaction-tbody"),
+    btnAddTransaction: document.getElementById("btn-add-transaction"),
+
+    // Transaction Modal
+    modalTransaction: document.getElementById("modal-transaction"),
+    modalTransactionTitle: document.getElementById("modal-transaction-title"),
+    formTransaction: document.getElementById("form-transaction"),
+    txId: document.getElementById("tx-id"),
+    txDate: document.getElementById("tx-date"),
+    txUnit: document.getElementById("tx-unit"),
+    txType: document.getElementById("tx-type"),
+    btnTypeIncome: document.getElementById("btn-type-income"),
+    btnTypeExpense: document.getElementById("btn-type-expense"),
+    txCategory: document.getElementById("tx-category"),
+    txAmount: document.getElementById("tx-amount"),
+    amountPreview: document.getElementById("amount-preview"),
+    txPayment: document.getElementById("tx-payment"),
+    txDescription: document.getElementById("tx-description"),
+    txReference: document.getElementById("tx-reference"),
+    btnSaveTx: document.getElementById("btn-save-tx"),
+
+    // Delete Modal (Transactions)
+    modalDelete: document.getElementById("modal-delete"),
+    deleteTargetId: document.getElementById("delete-target-id"),
+    btnConfirmDelete: document.getElementById("btn-confirm-delete"),
+
+    // ================= F&B RECONCILIATION DOM =================
+    // Inline Form directly on page
+    inlineFormCard: document.getElementById("inline-form-card"),
+    inlineRecFormTitle: document.getElementById("inline-rec-form-title"),
+    inlineRecBadgeMode: document.getElementById("inline-rec-badge-mode"),
+    btnInlineResetForm: document.getElementById("btn-inline-reset-form"),
+    formInlineFnbRec: document.getElementById("form-inline-fnb-rec"),
+    inlineRecId: document.getElementById("inline-rec-id"),
+    inlineRecDate: document.getElementById("inline-rec-date"),
+    inlineDateHint: document.getElementById("inline-date-hint"),
+    inlineRecKiotviet: document.getElementById("inline-rec-kiotviet"),
+    inlineRecPreviewKiotviet: document.getElementById("inline-rec-preview-kiotviet"),
+    inlineRecCash: document.getElementById("inline-rec-cash"),
+    inlineRecPreviewCash: document.getElementById("inline-rec-preview-cash"),
+    inlineRecMb: document.getElementById("inline-rec-mb"),
+    inlineRecPreviewMb: document.getElementById("inline-rec-preview-mb"),
+    inlineRecCalcKiotviet: document.getElementById("inline-rec-calc-kiotviet"),
+    inlineRecCalcCollected: document.getElementById("inline-rec-calc-collected"),
+    inlineRecCalcDiff: document.getElementById("inline-rec-calc-diff"),
+    inlineRecCalcBadge: document.getElementById("inline-rec-calc-badge"),
+    inlineRecDiffWarning: document.getElementById("inline-rec-diff-warning"),
+    inlineRecReason: document.getElementById("inline-rec-reason"),
+    inlineRecReasonRequiredMark: document.getElementById("inline-rec-reason-required-mark"),
+    inlineRecNotes: document.getElementById("inline-rec-notes"),
+    btnSaveInlineFnbRec: document.getElementById("btn-save-inline-fnb-rec"),
+
+    // KPI & Filters
+    fnbKpiKiotviet: document.getElementById("fnb-kpi-kiotviet"),
+    fnbKpiCash: document.getElementById("fnb-kpi-cash"),
+    fnbKpiMb: document.getElementById("fnb-kpi-mb"),
+    fnbKpiDiff: document.getElementById("fnb-kpi-diff"),
+    fnbKpiDiffBadge: document.getElementById("fnb-kpi-diff-badge"),
+    fnbKpiTotalCollected: document.getElementById("fnb-kpi-total-collected"),
+
+    fnbFilterStartDate: document.getElementById("fnb-filter-start-date"),
+    fnbFilterEndDate: document.getElementById("fnb-filter-end-date"),
+    fnbFilterStatus: document.getElementById("fnb-filter-status"),
+    fnbFilterSearch: document.getElementById("fnb-filter-search"),
+    btnFnbApplyFilter: document.getElementById("btn-fnb-apply-filter"),
+    btnFnbResetFilter: document.getElementById("btn-fnb-reset-filter"),
+    fnbPresetBtns: document.querySelectorAll(".fnb-preset-btn"),
+
+    fnbTableWrapper: document.getElementById("fnb-table-wrapper"),
+    fnbTableLoading: document.getElementById("fnb-table-loading"),
+    fnbTableEmpty: document.getElementById("fnb-table-empty"),
+    fnbRecTbody: document.getElementById("fnb-rec-tbody"),
+    btnAddFnbRec: document.getElementById("btn-add-fnb-rec"),
+
+    // F&B Modal (optional secondary)
+    modalFnbRec: document.getElementById("modal-fnb-rec"),
+    modalFnbRecTitle: document.getElementById("modal-fnb-rec-title"),
+    formFnbRec: document.getElementById("form-fnb-rec"),
+    recId: document.getElementById("rec-id"),
+    recDate: document.getElementById("rec-date"),
+    recKiotviet: document.getElementById("rec-kiotviet"),
+    recPreviewKiotviet: document.getElementById("rec-preview-kiotviet"),
+    recCash: document.getElementById("rec-cash"),
+    recPreviewCash: document.getElementById("rec-preview-cash"),
+    recMb: document.getElementById("rec-mb"),
+    recPreviewMb: document.getElementById("rec-preview-mb"),
+    recCalcKiotviet: document.getElementById("rec-calc-kiotviet"),
+    recCalcCollected: document.getElementById("rec-calc-collected"),
+    recCalcDiff: document.getElementById("rec-calc-diff"),
+    recCalcBadge: document.getElementById("rec-calc-badge"),
+    recDiffWarning: document.getElementById("rec-diff-warning"),
+    recReason: document.getElementById("rec-reason"),
+    recReasonRequiredMark: document.getElementById("rec-reason-required-mark"),
+    recNotes: document.getElementById("rec-notes"),
+    btnSaveFnbRec: document.getElementById("btn-save-fnb-rec"),
+
+    modalFnbDelete: document.getElementById("modal-fnb-delete"),
+    fnbDeleteTargetId: document.getElementById("fnb-delete-target-id"),
+    btnConfirmFnbDelete: document.getElementById("btn-confirm-fnb-delete"),
+
+    // ================= SALARY & BANK EXPENSES DOM =================
+    inlineSbFormCard: document.getElementById("inline-sb-form-card"),
+    inlineSbFormTitle: document.getElementById("inline-sb-form-title"),
+    inlineSbBadgeMode: document.getElementById("inline-sb-badge-mode"),
+    btnSbResetForm: document.getElementById("btn-sb-reset-form"),
+    formInlineSalaryBank: document.getElementById("form-inline-salary-bank"),
+    sbId: document.getElementById("sb-id"),
+    sbDate: document.getElementById("sb-date"),
+    sbUnit: document.getElementById("sb-unit"),
+    btnSbTypeSalary: document.getElementById("btn-sb-type-salary"),
+    btnSbTypeTransfer: document.getElementById("btn-sb-type-transfer"),
+    sbType: document.getElementById("sb-type"),
+    sbCategory: document.getElementById("sb-category"),
+    sbRecipient: document.getElementById("sb-recipient"),
+    sbAmount: document.getElementById("sb-amount"),
+    sbAmountPreview: document.getElementById("sb-amount-preview"),
+    sbSourceBank: document.getElementById("sb-source-bank"),
+    sbRecipientBank: document.getElementById("sb-recipient-bank"),
+    sbRecipientAccount: document.getElementById("sb-recipient-account"),
+    sbRef: document.getElementById("sb-ref"),
+    sbDesc: document.getElementById("sb-desc"),
+    sbNotes: document.getElementById("sb-notes"),
+    btnSaveSalaryBank: document.getElementById("btn-save-salary-bank"),
+    btnAddSalaryBank: document.getElementById("btn-add-salary-bank"),
+
+    // KPI & Filters (Salary & Bank)
+    sbKpiTotal: document.getElementById("sb-kpi-total"),
+    sbKpiSubStats: document.getElementById("sb-kpi-sub-stats"),
+    sbKpiSonmai: document.getElementById("sb-kpi-sonmai"),
+    sbKpiSonmaiCount: document.getElementById("sb-kpi-sonmai-count"),
+    sbKpiFnb: document.getElementById("sb-kpi-fnb"),
+    sbKpiFnbCount: document.getElementById("sb-kpi-fnb-count"),
+    sbKpiVanphong: document.getElementById("sb-kpi-vanphong"),
+    sbKpiVanphongCount: document.getElementById("sb-kpi-vanphong-count"),
+
+    sbFilterStartDate: document.getElementById("sb-filter-start-date"),
+    sbFilterEndDate: document.getElementById("sb-filter-end-date"),
+    sbFilterUnit: document.getElementById("sb-filter-unit"),
+    sbFilterType: document.getElementById("sb-filter-type"),
+    sbFilterSearch: document.getElementById("sb-filter-search"),
+    btnSbApplyFilter: document.getElementById("btn-sb-apply-filter"),
+    btnSbResetFilter: document.getElementById("btn-sb-reset-filter"),
+    sbPresetBtns: document.querySelectorAll(".sb-preset-btn"),
+
+    sbTableWrapper: document.getElementById("sb-table-wrapper"),
+    sbTableLoading: document.getElementById("sb-table-loading"),
+    sbTableEmpty: document.getElementById("sb-table-empty"),
+    sbTbody: document.getElementById("sb-tbody"),
+
+    modalSbDelete: document.getElementById("modal-sb-delete"),
+    sbDeleteTargetId: document.getElementById("sb-delete-target-id"),
+    btnConfirmSbDelete: document.getElementById("btn-confirm-sb-delete"),
+
+    // ================= EXCEL TEMPLATES & IMPORT DOM =================
+    btnOpenExcelModal: document.getElementById("btn-open-excel-modal"),
+    modalExcelImport: document.getElementById("modal-excel-import"),
+    excelTargetType: document.getElementById("excel-target-type"),
+    excelFileInput: document.getElementById("excel-file-input"),
+    btnSubmitExcelImport: document.getElementById("btn-submit-excel-import"),
+    excelPreviewBox: document.getElementById("excel-preview-box"),
+    excelPreviewText: document.getElementById("excel-preview-text"),
+    excelErrorBox: document.getElementById("excel-error-box"),
+    excelErrorText: document.getElementById("excel-error-text"),
+    btnTriggerImports: document.querySelectorAll(".btn-trigger-import"),
+
+    // Toast Container
+    toastContainer: document.getElementById("toast-container")
+  };
+
+  // ================= UTILITIES =================
+  function showToast(message, type = "info") {
+    const toast = document.createElement("div");
+    toast.className = `toast toast-${type}`;
+
+    let icon = "ℹ️";
+    if (type === "success") icon = "✅";
+    if (type === "error") icon = "❌";
+    if (type === "warning") icon = "⚠️";
+
+    toast.innerHTML = `<span>${icon}</span><span>${escapeHtml(message)}</span>`;
+    DOM.toastContainer.appendChild(toast);
+
+    setTimeout(() => {
+      toast.style.opacity = "0";
+      toast.style.transform = "translateX(100%)";
+      toast.style.transition = "all 0.3s ease";
+      setTimeout(() => toast.remove(), 300);
+    }, 4000);
+  }
+
+  function escapeHtml(str) {
+    if (!str) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function formatDateVN(dateStr) {
+    if (!dateStr) return "-";
+    const parts = dateStr.split("-");
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateStr;
+  }
+
+  function getTodayString() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
+  function openModal(modalEl) {
+    if (modalEl) modalEl.classList.add("active");
+  }
+
+  function closeModal(modalEl) {
+    if (modalEl) modalEl.classList.remove("active");
+  }
+
+  // ================= SUPABASE CONFIGURATION =================
+  function checkSupabaseConfig() {
+    const isConfigured = window.SupabaseConfig.isSupabaseConfigured();
+    if (!isConfigured) {
+      DOM.configAlertBanner.classList.remove("hidden");
+    } else {
+      DOM.configAlertBanner.classList.add("hidden");
+    }
+    return isConfigured;
+  }
+
+  function setupConfigEvents() {
+    const openConfigHandler = () => {
+      DOM.configAnonKey.value = window.SupabaseConfig.getStoredAnonKey();
+      openModal(DOM.modalConfig);
+    };
+
+    DOM.btnOpenConfigBanner.addEventListener("click", openConfigHandler);
+    DOM.btnConfig.addEventListener("click", openConfigHandler);
+
+    DOM.btnSaveConfig.addEventListener("click", () => {
+      const key = DOM.configAnonKey.value.trim();
+      if (!key) {
+        showToast("Vui lòng nhập Supabase Anon Key.", "warning");
+        return;
+      }
+
+      window.SupabaseConfig.saveStoredAnonKey(key);
+      const client = window.SupabaseConfig.initSupabase();
+
+      if (client) {
+        showToast("Đã lưu cấu hình Supabase Anon Key thành công!", "success");
+        closeModal(DOM.modalConfig);
+        checkSupabaseConfig();
+        initAuthAndSession();
+      } else {
+        showToast("Không thể khởi tạo Supabase Client. Kiểm tra lại Anon Key.", "error");
+      }
+    });
+  }
+
+  // ================= AUTHENTICATION =================
+  function setupAuthEvents() {
+    // Chuyển tab Đăng nhập / Đăng ký
+    DOM.tabLogin.addEventListener("click", () => {
+      DOM.tabLogin.classList.add("active");
+      DOM.tabRegister.classList.remove("active");
+      DOM.formLogin.classList.remove("hidden");
+      DOM.formRegister.classList.add("hidden");
+      hideAuthMessage();
+    });
+
+    DOM.tabRegister.addEventListener("click", () => {
+      DOM.tabRegister.classList.add("active");
+      DOM.tabLogin.classList.remove("active");
+      DOM.formRegister.classList.remove("hidden");
+      DOM.formLogin.classList.add("hidden");
+      hideAuthMessage();
+    });
+
+    // Submit Đăng nhập
+    DOM.formLogin.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = DOM.loginEmail.value.trim();
+      const password = DOM.loginPassword.value;
+
+      if (!checkSupabaseConfig()) {
+        showToast("Vui lòng cấu hình Supabase Anon Key trước khi đăng nhập.", "warning");
+        openModal(DOM.modalConfig);
+        return;
+      }
+
+      DOM.btnSubmitLogin.disabled = true;
+      DOM.btnSubmitLogin.textContent = "Đang đăng nhập...";
+      hideAuthMessage();
+
+      try {
+        await window.AuthManager.signIn(email, password);
+        showToast("Đăng nhập thành công!", "success");
+        DOM.loginPassword.value = "";
+        await onUserSignedIn();
+      } catch (err) {
+        showAuthMessage(err.message, "error");
+        showToast(err.message, "error");
+      } finally {
+        DOM.btnSubmitLogin.disabled = false;
+        DOM.btnSubmitLogin.textContent = "Đăng nhập";
+      }
+    });
+
+    // Submit Đăng ký
+    DOM.formRegister.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = DOM.regEmail.value.trim();
+      const password = DOM.regPassword.value;
+
+      if (!checkSupabaseConfig()) {
+        showToast("Vui lòng cấu hình Supabase Anon Key trước khi đăng ký.", "warning");
+        openModal(DOM.modalConfig);
+        return;
+      }
+
+      if (password.length < 6) {
+        showAuthMessage("Mật khẩu phải có tối thiểu 6 ký tự.", "error");
+        return;
+      }
+
+      DOM.btnSubmitRegister.disabled = true;
+      DOM.btnSubmitRegister.textContent = "Đang tạo tài khoản...";
+      hideAuthMessage();
+
+      try {
+        const result = await window.AuthManager.signUp(email, password);
+        if (result.requiresEmailConfirmation) {
+          showAuthMessage(result.message, "info");
+          showToast("Đã gửi email xác nhận. Vui lòng kiểm tra hộp thư!", "info");
+        } else {
+          showToast("Tạo tài khoản thành công!", "success");
+          DOM.regPassword.value = "";
+          await onUserSignedIn();
+        }
+      } catch (err) {
+        showAuthMessage(err.message, "error");
+        showToast(err.message, "error");
+      } finally {
+        DOM.btnSubmitRegister.disabled = false;
+        DOM.btnSubmitRegister.textContent = "Tạo tài khoản mới";
+      }
+    });
+
+    // Đăng xuất
+    DOM.btnLogout.addEventListener("click", async () => {
+      try {
+        await window.AuthManager.signOut();
+        showToast("Đã đăng xuất thành công.", "info");
+        onUserSignedOut();
+      } catch (err) {
+        console.error("Lỗi khi đăng xuất:", err);
+      }
+    });
+  }
+
+  function showAuthMessage(text, type = "error") {
+    DOM.authMsgBox.textContent = text;
+    DOM.authMsgBox.className = "";
+    if (type === "error") {
+      DOM.authMsgBox.style.background = "#fee2e2";
+      DOM.authMsgBox.style.color = "#b91c1c";
+      DOM.authMsgBox.style.border = "1px solid #fca5a5";
+    } else {
+      DOM.authMsgBox.style.background = "#e0f2fe";
+      DOM.authMsgBox.style.color = "#0369a1";
+      DOM.authMsgBox.style.border = "1px solid #7dd3fc";
+    }
+    DOM.authMsgBox.classList.remove("hidden");
+  }
+
+  function hideAuthMessage() {
+    DOM.authMsgBox.classList.add("hidden");
+  }
+
+  async function initAuthAndSession() {
+    if (!checkSupabaseConfig()) return;
+
+    window.SupabaseConfig.initSupabase();
+
+    const session = await window.AuthManager.getSession();
+    if (session && session.user) {
+      await onUserSignedIn();
+    } else {
+      onUserSignedOut();
+    }
+
+    window.AuthManager.listenAuthState((event, session) => {
+      if (event === "SIGNED_IN" && session) {
+        onUserSignedIn();
+      } else if (event === "SIGNED_OUT") {
+        onUserSignedOut();
+      }
+    });
+  }
+
+  async function onUserSignedIn() {
+    const user = window.AuthManager.currentUser;
+    DOM.userEmailDisplay.textContent = user?.email || "Người dùng";
+    DOM.userInfoArea.classList.remove("hidden");
+    DOM.btnLogout.classList.remove("hidden");
+    if (DOM.btnOpenExcelModal) DOM.btnOpenExcelModal.classList.remove("hidden");
+    if (DOM.mainNavTabs) DOM.mainNavTabs.classList.remove("hidden");
+    DOM.authSection.classList.add("hidden");
+    DOM.appSection.classList.remove("hidden");
+
+    // Tải dữ liệu ban đầu
+    await loadInitialData();
+  }
+
+  function onUserSignedOut() {
+    DOM.userInfoArea.classList.add("hidden");
+    DOM.btnLogout.classList.add("hidden");
+    if (DOM.btnOpenExcelModal) DOM.btnOpenExcelModal.classList.add("hidden");
+    if (DOM.mainNavTabs) DOM.mainNavTabs.classList.add("hidden");
+    DOM.appSection.classList.add("hidden");
+    DOM.authSection.classList.remove("hidden");
+    DOM.transactionTbody.innerHTML = "";
+    if (DOM.fnbRecTbody) DOM.fnbRecTbody.innerHTML = "";
+    DOM.txDate.value = getTodayString();
+  }
+
+  // ================= LOAD INITIAL METADATA =================
+  async function loadInitialData() {
+    try {
+      // 1. Tải mảng kinh doanh
+      AppState.businessUnits = await window.TransactionService.getBusinessUnits();
+      populateBusinessUnitDropdowns();
+
+      // 2. Tải toàn bộ danh mục
+      AppState.categories = await window.TransactionService.getCategories();
+      populateCategoryDropdowns();
+
+      // 3. Tải và lọc giao dịch thu chi chung
+      await applyFilters();
+
+      // 4. Tải dữ liệu đối soát F&B
+      await applyFnbFilters();
+
+      // 5. Tải dữ liệu chi lương & chuyển khoản
+      await applySalaryBankFilters();
+    } catch (err) {
+      console.error("Lỗi khi tải metadata ban đầu:", err);
+      showToast("Lỗi kết nối CSDL: " + (err.message || "Vui lòng kiểm tra RLS hoặc schema"), "error");
+    }
+  }
+
+  function populateBusinessUnitDropdowns() {
+    // Filter dropdown (Transactions)
+    DOM.filterUnit.innerHTML = '<option value="">-- Tất cả mảng --</option>';
+    AppState.businessUnits.forEach(u => {
+      const opt = document.createElement("option");
+      opt.value = u.id;
+      opt.textContent = u.name;
+      DOM.filterUnit.appendChild(opt);
+    });
+
+    // Form modal dropdown (Transactions)
+    DOM.txUnit.innerHTML = '<option value="">-- Chọn mảng hoạt động --</option>';
+    AppState.businessUnits.forEach(u => {
+      const opt = document.createElement("option");
+      opt.value = u.id;
+      opt.textContent = u.name;
+      DOM.txUnit.appendChild(opt);
+    });
+
+    // Filter dropdown (Salary & Bank)
+    if (DOM.sbFilterUnit) {
+      DOM.sbFilterUnit.innerHTML = '<option value="">-- Tất cả mảng --</option>';
+      AppState.businessUnits.forEach(u => {
+        const opt = document.createElement("option");
+        opt.value = u.id;
+        opt.textContent = u.name;
+        DOM.sbFilterUnit.appendChild(opt);
+      });
+    }
+
+    // Inline form dropdown (Salary & Bank)
+    if (DOM.sbUnit) {
+      DOM.sbUnit.innerHTML = '<option value="">-- Chọn mảng hoạt động --</option>';
+      AppState.businessUnits.forEach(u => {
+        const opt = document.createElement("option");
+        opt.value = u.id;
+        opt.textContent = `${u.name} [${u.code}]`;
+        DOM.sbUnit.appendChild(opt);
+      });
+    }
+  }
+
+  function populateCategoryDropdowns(unitId = null, transactionType = null) {
+    // 1. Filter Category dropdown
+    const filterUnitId = DOM.filterUnit.value ? Number(DOM.filterUnit.value) : null;
+    const filterTypeVal = DOM.filterType.value || null;
+
+    let availableForFilter = AppState.categories;
+    if (filterUnitId) {
+      availableForFilter = availableForFilter.filter(c => !c.business_unit_id || c.business_unit_id === filterUnitId);
+    }
+    if (filterTypeVal) {
+      availableForFilter = availableForFilter.filter(c => c.transaction_type === filterTypeVal);
+    }
+
+    DOM.filterCategory.innerHTML = '<option value="">-- Tất cả danh mục --</option>';
+    availableForFilter.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c.id;
+      opt.textContent = c.name;
+      DOM.filterCategory.appendChild(opt);
+    });
+
+    // 2. Modal Form Category dropdown
+    updateModalCategoryDropdown();
+  }
+
+  function updateModalCategoryDropdown() {
+    const selectedUnitId = DOM.txUnit.value ? Number(DOM.txUnit.value) : null;
+    const selectedType = DOM.txType.value || "income";
+
+    let available = AppState.categories.filter(c => c.transaction_type === selectedType);
+    if (selectedUnitId) {
+      available = available.filter(c => !c.business_unit_id || c.business_unit_id === selectedUnitId);
+    }
+
+    DOM.txCategory.innerHTML = '<option value="">-- Chọn danh mục --</option>';
+    available.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c.id;
+      opt.textContent = c.name;
+      DOM.txCategory.appendChild(opt);
+    });
+  }
+
+  // ================= FILTERS & PRESETS =================
+  function setupFilterEvents() {
+    // Nút chọn nhanh khoảng ngày
+    DOM.presetBtns.forEach(btn => {
+      btn.addEventListener("click", () => {
+        DOM.presetBtns.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        const preset = btn.getAttribute("data-preset");
+        applyDatePreset(preset);
+        applyFilters();
+      });
+    });
+
+    // Khi đổi mảng hoặc loại ở filter -> cập nhật danh mục filter
+    DOM.filterUnit.addEventListener("change", () => {
+      populateCategoryDropdowns();
+      applyFilters();
+    });
+
+    DOM.filterType.addEventListener("change", () => {
+      populateCategoryDropdowns();
+      applyFilters();
+    });
+
+    DOM.filterCategory.addEventListener("change", () => applyFilters());
+    DOM.filterPayment.addEventListener("change", () => applyFilters());
+
+    DOM.btnApplyFilter.addEventListener("click", () => applyFilters());
+
+    // Nút đặt lại bộ lọc
+    DOM.btnResetFilter.addEventListener("click", () => {
+      DOM.filterStartDate.value = "";
+      DOM.filterEndDate.value = "";
+      DOM.filterUnit.value = "";
+      DOM.filterType.value = "";
+      DOM.filterCategory.value = "";
+      DOM.filterPayment.value = "";
+      DOM.filterSearch.value = "";
+
+      DOM.presetBtns.forEach(b => b.classList.remove("active"));
+      const allBtn = document.querySelector('.preset-btn[data-preset="all"]');
+      if (allBtn) allBtn.classList.add("active");
+
+      populateCategoryDropdowns();
+      applyFilters();
+    });
+
+    // Tìm kiếm khi nhấn Enter
+    DOM.filterSearch.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        applyFilters();
+      }
+    });
+  }
+
+  function applyDatePreset(preset) {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = today.getMonth();
+
+    if (preset === "today") {
+      const dStr = getTodayString();
+      DOM.filterStartDate.value = dStr;
+      DOM.filterEndDate.value = dStr;
+    } else if (preset === "month") {
+      const firstDay = new Date(y, m, 1);
+      const lastDay = new Date(y, m + 1, 0);
+      DOM.filterStartDate.value = formatDateIso(firstDay);
+      DOM.filterEndDate.value = formatDateIso(lastDay);
+    } else if (preset === "quarter") {
+      const qMonth = Math.floor(m / 3) * 3;
+      const firstDay = new Date(y, qMonth, 1);
+      const lastDay = new Date(y, qMonth + 3, 0);
+      DOM.filterStartDate.value = formatDateIso(firstDay);
+      DOM.filterEndDate.value = formatDateIso(lastDay);
+    } else if (preset === "all") {
+      DOM.filterStartDate.value = "";
+      DOM.filterEndDate.value = "";
+    }
+  }
+
+  function formatDateIso(dateObj) {
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const d = String(dateObj.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
+  async function applyFilters() {
+    const filters = {
+      startDate: DOM.filterStartDate.value || null,
+      endDate: DOM.filterEndDate.value || null,
+      businessUnitId: DOM.filterUnit.value ? Number(DOM.filterUnit.value) : null,
+      transactionType: DOM.filterType.value || null,
+      categoryId: DOM.filterCategory.value ? Number(DOM.filterCategory.value) : null,
+      paymentMethod: DOM.filterPayment.value || null,
+      search: DOM.filterSearch.value.trim() || null
+    };
+
+    DOM.tableLoading.classList.remove("hidden");
+    DOM.tableEmpty.classList.add("hidden");
+    DOM.transactionTbody.innerHTML = "";
+
+    try {
+      const transactions = await window.TransactionService.getTransactions(filters);
+      AppState.currentTransactions = transactions;
+
+      // Cập nhật Dashboard & Thống kê
+      window.DashboardManager.renderDashboard(transactions);
+
+      // Render bảng
+      renderTransactionTable(transactions);
+    } catch (err) {
+      console.error("Lỗi khi lọc giao dịch:", err);
+      showToast("Lỗi khi tải dữ liệu giao dịch: " + err.message, "error");
+    } finally {
+      DOM.tableLoading.classList.add("hidden");
+    }
+  }
+
+  // ================= RENDER TABLE =================
+  function renderTransactionTable(transactions) {
+    DOM.transactionTbody.innerHTML = "";
+
+    if (!transactions || transactions.length === 0) {
+      DOM.tableEmpty.classList.remove("hidden");
+      return;
+    }
+
+    DOM.tableEmpty.classList.add("hidden");
+
+    const paymentLabels = {
+      cash: "Tiền mặt",
+      bank_transfer: "Chuyển khoản",
+      card: "Thẻ NH",
+      other: "Khác"
+    };
+
+    transactions.forEach(tx => {
+      const tr = document.createElement("tr");
+
+      const isIncome = tx.transaction_type === "income";
+      const unitCode = tx.business_units?.code || "";
+      const unitName = tx.business_units?.name || "Khác";
+      const categoryName = tx.categories?.name || "-";
+      const formattedAmount = window.DashboardManager.formatVND(tx.amount);
+
+      let unitBadgeClass = "badge-office";
+      if (unitCode === "SON_MAI") unitBadgeClass = "badge-sonmai";
+      if (unitCode === "FNB") unitBadgeClass = "badge-fnb";
+
+      tr.innerHTML = `
+        <td style="font-weight: 500;">${formatDateVN(tx.transaction_date)}</td>
+        <td><span class="badge ${unitBadgeClass}">${escapeHtml(unitName)}</span></td>
+        <td>
+          <span class="badge ${isIncome ? "badge-income" : "badge-expense"}">
+            ${isIncome ? "Thu (+)" : "Chi (-)"}
+          </span>
+        </td>
+        <td style="color: var(--text-main); font-weight: 500;">${escapeHtml(categoryName)}</td>
+        <td style="text-align: right;" class="${isIncome ? "amount-income" : "amount-expense"}">
+          ${isIncome ? "+" : "-"}${formattedAmount}
+        </td>
+        <td style="font-size: 0.82rem; color: var(--text-muted);">${paymentLabels[tx.payment_method] || tx.payment_method}</td>
+        <td>
+          <div style="font-weight: 500;">${escapeHtml(tx.description || "-")}</div>
+          ${tx.reference_no ? `<small style="color: var(--text-muted);">Mã: ${escapeHtml(tx.reference_no)}</small>` : ""}
+        </td>
+        <td style="text-align: center;">
+          <div class="action-btns" style="justify-content: center;">
+            <button class="btn btn-sm btn-outline btn-edit-tx" data-id="${tx.id}" title="Chỉnh sửa">
+              ✏️
+            </button>
+            <button class="btn btn-sm btn-outline btn-delete-tx" data-id="${tx.id}" title="Xóa" style="color: var(--expense-red);">
+              🗑️
+            </button>
+          </div>
+        </td>
+      `;
+
+      DOM.transactionTbody.appendChild(tr);
+    });
+
+    // Gắn sự kiện cho các nút Sửa & Xóa
+    DOM.transactionTbody.querySelectorAll(".btn-edit-tx").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = Number(btn.getAttribute("data-id"));
+        openEditTransactionModal(id);
+      });
+    });
+
+    DOM.transactionTbody.querySelectorAll(".btn-delete-tx").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = Number(btn.getAttribute("data-id"));
+        openDeleteModal(id);
+      });
+    });
+  }
+
+  // ================= MODAL THÊM / SỬA GIAO DỊCH =================
+  function setupTransactionModalEvents() {
+    // Mở modal thêm mới
+    DOM.btnAddTransaction.addEventListener("click", () => {
+      openCreateTransactionModal();
+    });
+
+    // Preview VND khi gõ số tiền
+    DOM.txAmount.addEventListener("input", () => {
+      const val = Number(DOM.txAmount.value);
+      DOM.amountPreview.textContent = isNaN(val) || val <= 0 ? "0 ₫" : window.DashboardManager.formatVND(val);
+    });
+
+    // Toggle Loại giao dịch trong Form: Thu (+) / Chi (-)
+    DOM.btnTypeIncome.addEventListener("click", () => {
+      DOM.btnTypeIncome.classList.add("active");
+      DOM.btnTypeExpense.classList.remove("active");
+      DOM.txType.value = "income";
+      updateModalCategoryDropdown();
+    });
+
+    DOM.btnTypeExpense.addEventListener("click", () => {
+      DOM.btnTypeExpense.classList.add("active");
+      DOM.btnTypeIncome.classList.remove("active");
+      DOM.txType.value = "expense";
+      updateModalCategoryDropdown();
+    });
+
+    // Khi đổi Mảng hoạt động trong Form -> cập nhật dropdown Danh mục
+    DOM.txUnit.addEventListener("change", () => {
+      updateModalCategoryDropdown();
+    });
+
+    // Submit Form Lưu giao dịch
+    DOM.formTransaction.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const txId = DOM.txId.value ? Number(DOM.txId.value) : null;
+      const amountVal = Number(DOM.txAmount.value);
+
+      if (isNaN(amountVal) || amountVal <= 0) {
+        showToast("Số tiền giao dịch phải là số dương lớn hơn 0.", "warning");
+        DOM.txAmount.focus();
+        return;
+      }
+
+      if (!DOM.txUnit.value) {
+        showToast("Vui lòng chọn mảng hoạt động.", "warning");
+        DOM.txUnit.focus();
+        return;
+      }
+
+      const payload = {
+        transaction_date: DOM.txDate.value,
+        business_unit_id: Number(DOM.txUnit.value),
+        category_id: DOM.txCategory.value ? Number(DOM.txCategory.value) : null,
+        transaction_type: DOM.txType.value,
+        amount: amountVal,
+        payment_method: DOM.txPayment.value,
+        description: DOM.txDescription.value,
+        reference_no: DOM.txReference.value
+      };
+
+      DOM.btnSaveTx.disabled = true;
+      DOM.btnSaveTx.textContent = "Đang lưu vào Supabase...";
+
+      try {
+        if (txId) {
+          await window.TransactionService.updateTransaction(txId, payload);
+          showToast("Cập nhật giao dịch thành công!", "success");
+        } else {
+          await window.TransactionService.createTransaction(payload);
+          showToast("Ghi nhận giao dịch mới thành công!", "success");
+        }
+
+        closeModal(DOM.modalTransaction);
+        await applyFilters();
+      } catch (err) {
+        console.error("Lỗi khi lưu giao dịch:", err);
+        showToast("Không thể lưu giao dịch: " + (err.message || "Lỗi database"), "error");
+      } finally {
+        DOM.btnSaveTx.disabled = false;
+        DOM.btnSaveTx.textContent = "Lưu giao dịch";
+      }
+    });
+
+    // Xóa giao dịch: nút xác nhận
+    DOM.btnConfirmDelete.addEventListener("click", async () => {
+      const id = Number(DOM.deleteTargetId.value);
+      if (!id) return;
+
+      DOM.btnConfirmDelete.disabled = true;
+      DOM.btnConfirmDelete.textContent = "Đang xóa...";
+
+      try {
+        await window.TransactionService.deleteTransaction(id);
+        showToast("Đã xóa giao dịch thành công khỏi Supabase.", "success");
+        closeModal(DOM.modalDelete);
+        await applyFilters();
+      } catch (err) {
+        console.error("Lỗi khi xóa giao dịch:", err);
+        showToast("Lỗi khi xóa giao dịch: " + err.message, "error");
+      } finally {
+        DOM.btnConfirmDelete.disabled = false;
+        DOM.btnConfirmDelete.textContent = "Xóa giao dịch";
+      }
+    });
+
+    // Đóng modal khi bấm nút close hoặc click overlay
+    document.querySelectorAll("[data-close-modal]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        closeModal(DOM.modalTransaction);
+        closeModal(DOM.modalDelete);
+        closeModal(DOM.modalConfig);
+        closeModal(DOM.modalFnbRec);
+        closeModal(DOM.modalFnbDelete);
+      });
+    });
+
+    // Đóng khi click ngoài backdrop
+    [DOM.modalTransaction, DOM.modalDelete, DOM.modalConfig, DOM.modalFnbRec, DOM.modalFnbDelete].forEach(modal => {
+      if (!modal) return;
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) {
+          closeModal(modal);
+        }
+      });
+    });
+  }
+
+  function openCreateTransactionModal() {
+    AppState.editingTransactionId = null;
+    DOM.txId.value = "";
+    DOM.modalTransactionTitle.textContent = "Thêm Giao dịch Mới";
+    DOM.txDate.value = getTodayString();
+    
+    // Mặc định Thu tiền
+    DOM.txType.value = "income";
+    DOM.btnTypeIncome.classList.add("active");
+    DOM.btnTypeExpense.classList.remove("active");
+
+    // Chọn mảng đầu tiên nếu có
+    if (AppState.businessUnits.length > 0) {
+      DOM.txUnit.value = AppState.businessUnits[0].id;
+    } else {
+      DOM.txUnit.value = "";
+    }
+
+    updateModalCategoryDropdown();
+
+    DOM.txAmount.value = "";
+    DOM.amountPreview.textContent = "0 ₫";
+    DOM.txPayment.value = "cash";
+    DOM.txDescription.value = "";
+    DOM.txReference.value = "";
+
+    openModal(DOM.modalTransaction);
+  }
+
+  function openEditTransactionModal(id) {
+    const tx = AppState.currentTransactions.find(t => t.id === id);
+    if (!tx) {
+      showToast("Không tìm thấy thông tin giao dịch cần sửa.", "error");
+      return;
+    }
+
+    AppState.editingTransactionId = id;
+    DOM.txId.value = id;
+    DOM.modalTransactionTitle.textContent = `Chỉnh sửa Giao dịch #${id}`;
+    DOM.txDate.value = tx.transaction_date;
+
+    DOM.txType.value = tx.transaction_type;
+    if (tx.transaction_type === "income") {
+      DOM.btnTypeIncome.classList.add("active");
+      DOM.btnTypeExpense.classList.remove("active");
+    } else {
+      DOM.btnTypeExpense.classList.add("active");
+      DOM.btnTypeIncome.classList.remove("active");
+    }
+
+    DOM.txUnit.value = tx.business_unit_id;
+    updateModalCategoryDropdown();
+    DOM.txCategory.value = tx.category_id || "";
+
+    DOM.txAmount.value = tx.amount;
+    DOM.amountPreview.textContent = window.DashboardManager.formatVND(tx.amount);
+    DOM.txPayment.value = tx.payment_method;
+    DOM.txDescription.value = tx.description || "";
+    DOM.txReference.value = tx.reference_no || "";
+
+    openModal(DOM.modalTransaction);
+  }
+
+  function openDeleteModal(id) {
+    DOM.deleteTargetId.value = id;
+    openModal(DOM.modalDelete);
+  }
+
+  // ================= NAVIGATION VIEW SWITCHING =================
+  function setupNavigationEvents() {
+    if (!DOM.navBtnTransactions || !DOM.navBtnFnbRec) return;
+
+    function activateTab(activeBtn, activeView) {
+      [DOM.navBtnTransactions, DOM.navBtnFnbRec, DOM.navBtnSalaryBank].forEach(btn => {
+        if (btn) btn.classList.remove("active");
+      });
+      [DOM.viewTransactions, DOM.viewFnbRec, DOM.viewSalaryBank].forEach(view => {
+        if (view) view.classList.add("hidden");
+      });
+
+      if (activeBtn) activeBtn.classList.add("active");
+      if (activeView) activeView.classList.remove("hidden");
+    }
+
+    DOM.navBtnTransactions.addEventListener("click", () => {
+      activateTab(DOM.navBtnTransactions, DOM.viewTransactions);
+    });
+
+    DOM.navBtnFnbRec.addEventListener("click", () => {
+      activateTab(DOM.navBtnFnbRec, DOM.viewFnbRec);
+      applyFnbFilters();
+    });
+
+    if (DOM.navBtnSalaryBank) {
+      DOM.navBtnSalaryBank.addEventListener("click", () => {
+        activateTab(DOM.navBtnSalaryBank, DOM.viewSalaryBank);
+        applySalaryBankFilters();
+      });
+    }
+  }
+
+  // ================= F&B RECONCILIATION LOGIC =================
+  // ================= F&B RECONCILIATION LOGIC =================
+  function setupFnbReconciliationEvents() {
+    if (!DOM.formInlineFnbRec && !DOM.btnAddFnbRec) return;
+
+    // A. XỬ LÝ FORM NHẬP LIỆU TRỰC TIẾP TRÊN TRANG (INLINE FORM)
+    if (DOM.formInlineFnbRec) {
+      // 1. Tính toán realtime khi gõ tiền trong Inline Form
+      const inlineCalcHandler = () => updateLiveInlineFnbCalculation();
+      DOM.inlineRecKiotviet.addEventListener("input", inlineCalcHandler);
+      DOM.inlineRecCash.addEventListener("input", inlineCalcHandler);
+      DOM.inlineRecMb.addEventListener("input", inlineCalcHandler);
+
+      // 2. Khi đổi ngày đối soát trên Inline Form -> kiểm tra xem đã có dữ liệu chưa
+      DOM.inlineRecDate.addEventListener("change", async () => {
+        const selectedDate = DOM.inlineRecDate.value;
+        if (!selectedDate) return;
+
+        try {
+          const existing = await window.FnbReconciliationService.getByDate(selectedDate);
+          if (existing) {
+            showToast(`Ngày ${formatDateVN(selectedDate)} đã có dữ liệu đối soát. Đang nạp để chỉnh sửa.`, "info");
+            populateInlineFnbForm(existing);
+          } else {
+            DOM.inlineRecId.value = "";
+            DOM.inlineRecFormTitle.innerHTML = `<span>📝 Form Nhập Liệu Đối Soát Doanh Thu F&B Hàng Ngày</span><span id="inline-rec-badge-mode" class="badge badge-neutral" style="font-size: 0.75rem;">Tạo mới</span>`;
+            DOM.inlineDateHint.textContent = `Tạo mới đối soát cho ngày ${formatDateVN(selectedDate)}`;
+            DOM.inlineDateHint.style.color = "var(--text-muted)";
+            DOM.inlineRecKiotviet.value = "";
+            DOM.inlineRecCash.value = "";
+            DOM.inlineRecMb.value = "";
+            DOM.inlineRecReason.value = "";
+            DOM.inlineRecNotes.value = "";
+            updateLiveInlineFnbCalculation();
+          }
+        } catch (err) {
+          console.error("Lỗi kiểm tra ngày:", err);
+        }
+      });
+
+      // 3. Nút "Nhập ngày khác" / Reset Inline Form
+      DOM.btnInlineResetForm.addEventListener("click", () => {
+        resetInlineFnbForm();
+        showToast("Đã làm mới form đối soát.", "info");
+      });
+
+      // 4. Submit Inline Form lưu đối soát vào Supabase
+      DOM.formInlineFnbRec.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const kiotviet = Number(DOM.inlineRecKiotviet.value) || 0;
+        const cash = Number(DOM.inlineRecCash.value) || 0;
+        const mb = Number(DOM.inlineRecMb.value) || 0;
+        const diff = (cash + mb) - kiotviet;
+
+        if (diff !== 0 && (!DOM.inlineRecReason.value || DOM.inlineRecReason.value.trim() === "")) {
+          showToast("⚠️ Phát hiện chênh lệch thu tiền! Vui lòng nhập lý do giải thích cụ thể.", "warning");
+          DOM.inlineRecReason.focus();
+          return;
+        }
+
+        const payload = {
+          id: DOM.inlineRecId.value ? Number(DOM.inlineRecId.value) : null,
+          reconciliation_date: DOM.inlineRecDate.value,
+          kiotviet_revenue: kiotviet,
+          cash_amount: cash,
+          mb_bank_amount: mb,
+          discrepancy_reason: DOM.inlineRecReason.value.trim(),
+          notes: DOM.inlineRecNotes.value.trim()
+        };
+
+        DOM.btnSaveInlineFnbRec.disabled = true;
+        DOM.btnSaveInlineFnbRec.textContent = "Đang lưu vào Supabase...";
+
+        try {
+          const saved = await window.FnbReconciliationService.saveReconciliation(payload);
+          showToast(`Đã lưu đối soát ngày ${formatDateVN(payload.reconciliation_date)} vào Supabase thành công!`, "success");
+          
+          // Cập nhật lại id và trạng thái form thành chỉnh sửa
+          populateInlineFnbForm(saved);
+
+          // Tải lại bảng và KPI
+          await applyFnbFilters();
+        } catch (err) {
+          console.error("Lỗi khi lưu đối soát F&B:", err);
+          showToast("Lỗi khi lưu: " + (err.message || "Không thể ghi vào database"), "error");
+        } finally {
+          DOM.btnSaveInlineFnbRec.disabled = false;
+          DOM.btnSaveInlineFnbRec.textContent = "💾 Lưu Đối Soát vào Supabase";
+        }
+      });
+    }
+
+    // B. NÚT "+ TẠO ĐỐI SOÁT NGÀY MỚI" TỪ HEADER BẢNG
+    if (DOM.btnAddFnbRec) {
+      DOM.btnAddFnbRec.addEventListener("click", () => {
+        resetInlineFnbForm();
+        if (DOM.inlineFormCard) {
+          DOM.inlineFormCard.scrollIntoView({ behavior: "smooth", block: "start" });
+          setTimeout(() => {
+            if (DOM.inlineRecKiotviet) DOM.inlineRecKiotviet.focus();
+          }, 400);
+        }
+      });
+    }
+
+    // C. CÁC SỰ KIỆN KHÁC (Xóa, Bộ lọc)
+    // Nút xác nhận xóa đối soát F&B
+    DOM.btnConfirmFnbDelete.addEventListener("click", async () => {
+      const id = Number(DOM.fnbDeleteTargetId.value);
+      if (!id) return;
+
+      DOM.btnConfirmFnbDelete.disabled = true;
+      DOM.btnConfirmFnbDelete.textContent = "Đang xóa...";
+
+      try {
+        await window.FnbReconciliationService.deleteReconciliation(id);
+        showToast("Đã xóa bản ghi đối soát khỏi Supabase.", "success");
+        closeModal(DOM.modalFnbDelete);
+        
+        // Nếu đang sửa đúng bản ghi vừa xóa, reset form
+        if (DOM.inlineRecId && Number(DOM.inlineRecId.value) === id) {
+          resetInlineFnbForm();
+        }
+
+        await applyFnbFilters();
+      } catch (err) {
+        console.error("Lỗi khi xóa đối soát:", err);
+        showToast("Lỗi khi xóa: " + err.message, "error");
+      } finally {
+        DOM.btnConfirmFnbDelete.disabled = false;
+        DOM.btnConfirmFnbDelete.textContent = "Xóa bản ghi";
+      }
+    });
+
+    // Bộ lọc và presets ngày cho đối soát F&B
+    DOM.fnbPresetBtns.forEach(btn => {
+      btn.addEventListener("click", () => {
+        DOM.fnbPresetBtns.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        const preset = btn.getAttribute("data-preset");
+        applyFnbDatePreset(preset);
+        applyFnbFilters();
+      });
+    });
+
+    DOM.fnbFilterStatus.addEventListener("change", () => applyFnbFilters());
+    DOM.btnFnbApplyFilter.addEventListener("click", () => applyFnbFilters());
+
+    DOM.btnFnbResetFilter.addEventListener("click", () => {
+      DOM.fnbFilterStartDate.value = "";
+      DOM.fnbFilterEndDate.value = "";
+      DOM.fnbFilterStatus.value = "all";
+      DOM.fnbFilterSearch.value = "";
+
+      DOM.fnbPresetBtns.forEach(b => b.classList.remove("active"));
+      const allBtn = document.querySelector('.fnb-preset-btn[data-preset="all"]');
+      if (allBtn) allBtn.classList.add("active");
+
+      applyFnbFilters();
+    });
+
+    DOM.fnbFilterSearch.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") applyFnbFilters();
+    });
+  }
+
+  function applyFnbDatePreset(preset) {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = today.getMonth();
+
+    if (preset === "today") {
+      const dStr = getTodayString();
+      DOM.fnbFilterStartDate.value = dStr;
+      DOM.fnbFilterEndDate.value = dStr;
+    } else if (preset === "month") {
+      const firstDay = new Date(y, m, 1);
+      const lastDay = new Date(y, m + 1, 0);
+      DOM.fnbFilterStartDate.value = formatDateIso(firstDay);
+      DOM.fnbFilterEndDate.value = formatDateIso(lastDay);
+    } else if (preset === "quarter") {
+      const qMonth = Math.floor(m / 3) * 3;
+      const firstDay = new Date(y, qMonth, 1);
+      const lastDay = new Date(y, qMonth + 3, 0);
+      DOM.fnbFilterStartDate.value = formatDateIso(firstDay);
+      DOM.fnbFilterEndDate.value = formatDateIso(lastDay);
+    } else if (preset === "all") {
+      DOM.fnbFilterStartDate.value = "";
+      DOM.fnbFilterEndDate.value = "";
+    }
+  }
+
+  // ================= TÍNH TOÁN & THAO TÁC INLINE FORM =================
+  function updateLiveInlineFnbCalculation() {
+    if (!DOM.inlineRecKiotviet) return;
+
+    const kv = Number(DOM.inlineRecKiotviet.value) || 0;
+    const cash = Number(DOM.inlineRecCash.value) || 0;
+    const mb = Number(DOM.inlineRecMb.value) || 0;
+
+    DOM.inlineRecPreviewKiotviet.textContent = window.DashboardManager.formatVND(kv);
+    DOM.inlineRecPreviewCash.textContent = window.DashboardManager.formatVND(cash);
+    DOM.inlineRecPreviewMb.textContent = window.DashboardManager.formatVND(mb);
+
+    const collected = cash + mb;
+    const diff = collected - kv;
+
+    DOM.inlineRecCalcKiotviet.textContent = window.DashboardManager.formatVND(kv);
+    DOM.inlineRecCalcCollected.textContent = window.DashboardManager.formatVND(collected);
+
+    if (diff === 0) {
+      DOM.inlineRecCalcDiff.textContent = "0 ₫";
+      DOM.inlineRecCalcDiff.style.color = "var(--income-green)";
+      DOM.inlineRecCalcBadge.textContent = "Khớp 100%";
+      DOM.inlineRecCalcBadge.className = "badge badge-matched";
+      DOM.inlineRecDiffWarning.classList.add("hidden");
+      DOM.inlineRecReasonRequiredMark.classList.add("hidden");
+    } else if (diff > 0) {
+      DOM.inlineRecCalcDiff.textContent = "+" + window.DashboardManager.formatVND(diff);
+      DOM.inlineRecCalcDiff.style.color = "#d97706";
+      DOM.inlineRecCalcBadge.textContent = "Thừa tiền (+)";
+      DOM.inlineRecCalcBadge.className = "badge badge-surplus";
+      DOM.inlineRecDiffWarning.classList.remove("hidden");
+      DOM.inlineRecReasonRequiredMark.classList.remove("hidden");
+    } else {
+      DOM.inlineRecCalcDiff.textContent = "-" + window.DashboardManager.formatVND(Math.abs(diff));
+      DOM.inlineRecCalcDiff.style.color = "var(--expense-red)";
+      DOM.inlineRecCalcBadge.textContent = "Thiếu tiền (-)";
+      DOM.inlineRecCalcBadge.className = "badge badge-deficit";
+      DOM.inlineRecDiffWarning.classList.remove("hidden");
+      DOM.inlineRecReasonRequiredMark.classList.remove("hidden");
+    }
+  }
+
+  function resetInlineFnbForm() {
+    if (!DOM.inlineRecDate) return;
+    DOM.inlineRecId.value = "";
+    DOM.inlineRecDate.value = getTodayString();
+    DOM.inlineRecFormTitle.innerHTML = `<span>📝 Form Nhập Liệu Đối Soát Doanh Thu F&B Hàng Ngày</span><span id="inline-rec-badge-mode" class="badge badge-neutral" style="font-size: 0.75rem;">Tạo mới</span>`;
+    DOM.inlineDateHint.textContent = `Ngày đối soát: ${formatDateVN(getTodayString())}`;
+    DOM.inlineDateHint.style.color = "var(--text-muted)";
+    DOM.inlineRecKiotviet.value = "";
+    DOM.inlineRecCash.value = "";
+    DOM.inlineRecMb.value = "";
+    DOM.inlineRecReason.value = "";
+    DOM.inlineRecNotes.value = "";
+
+    updateLiveInlineFnbCalculation();
+  }
+
+  function populateInlineFnbForm(record) {
+    if (!record || !DOM.inlineRecDate) return;
+    DOM.inlineRecId.value = record.id;
+    DOM.inlineRecDate.value = record.reconciliation_date;
+    DOM.inlineRecFormTitle.innerHTML = `<span>📝 Chỉnh sửa Đối Soát Ngày ${formatDateVN(record.reconciliation_date)}</span><span id="inline-rec-badge-mode" class="badge badge-warning" style="font-size: 0.75rem; background: #fef3c7; color: #b45309;">Chỉnh sửa #${record.id}</span>`;
+    DOM.inlineDateHint.textContent = `Đang chỉnh sửa bản ghi ngày ${formatDateVN(record.reconciliation_date)}`;
+    DOM.inlineDateHint.style.color = "var(--primary)";
+
+    DOM.inlineRecKiotviet.value = record.kiotviet_revenue || 0;
+    DOM.inlineRecCash.value = record.cash_amount || 0;
+    DOM.inlineRecMb.value = record.mb_bank_amount || 0;
+    DOM.inlineRecReason.value = record.discrepancy_reason || "";
+    DOM.inlineRecNotes.value = record.notes || "";
+
+    updateLiveInlineFnbCalculation();
+  }
+
+  function openDeleteFnbRecModal(id) {
+    DOM.fnbDeleteTargetId.value = id;
+    openModal(DOM.modalFnbDelete);
+  }
+
+  async function applyFnbFilters() {
+    if (!DOM.fnbRecTbody) return;
+
+    const filters = {
+      startDate: DOM.fnbFilterStartDate.value || null,
+      endDate: DOM.fnbFilterEndDate.value || null,
+      status: DOM.fnbFilterStatus.value || "all",
+      search: DOM.fnbFilterSearch.value.trim() || null
+    };
+
+    DOM.fnbTableLoading.classList.remove("hidden");
+    DOM.fnbTableEmpty.classList.add("hidden");
+    DOM.fnbRecTbody.innerHTML = "";
+
+    try {
+      const records = await window.FnbReconciliationService.getReconciliations(filters);
+      AppState.currentFnbReconciliations = records;
+
+      // Tính tổng hợp chỉ số
+      const summary = window.FnbReconciliationService.calculateSummary(records);
+      renderFnbSummary(summary);
+
+      // Render bảng dữ liệu
+      renderFnbReconciliationTable(records);
+    } catch (err) {
+      console.error("Lỗi khi lọc đối soát F&B:", err);
+      showToast("Lỗi khi tải đối soát F&B: " + err.message, "error");
+    } finally {
+      DOM.fnbTableLoading.classList.add("hidden");
+    }
+  }
+
+  function renderFnbSummary(summary) {
+    DOM.fnbKpiKiotviet.textContent = window.DashboardManager.formatVND(summary.totalKiotviet);
+    DOM.fnbKpiCash.textContent = window.DashboardManager.formatVND(summary.totalCash);
+    DOM.fnbKpiMb.textContent = window.DashboardManager.formatVND(summary.totalMb);
+    DOM.fnbKpiTotalCollected.textContent = window.DashboardManager.formatVND(summary.totalCollected);
+
+    const diff = summary.totalDifference;
+    DOM.fnbKpiDiff.textContent = (diff > 0 ? "+" : "") + window.DashboardManager.formatVND(diff);
+
+    if (diff === 0) {
+      DOM.fnbKpiDiff.className = "kpi-value text-positive";
+      DOM.fnbKpiDiffBadge.textContent = "Khớp chuẩn";
+      DOM.fnbKpiDiffBadge.className = "badge badge-matched";
+    } else if (diff > 0) {
+      DOM.fnbKpiDiff.className = "kpi-value text-positive";
+      DOM.fnbKpiDiffBadge.textContent = "Thừa tiền (+)";
+      DOM.fnbKpiDiffBadge.className = "badge badge-surplus";
+    } else {
+      DOM.fnbKpiDiff.className = "kpi-value text-negative";
+      DOM.fnbKpiDiffBadge.textContent = "Thiếu tiền (-)";
+      DOM.fnbKpiDiffBadge.className = "badge badge-deficit";
+    }
+  }
+
+  function renderFnbReconciliationTable(records) {
+    DOM.fnbRecTbody.innerHTML = "";
+
+    if (!records || records.length === 0) {
+      DOM.fnbTableEmpty.classList.remove("hidden");
+      return;
+    }
+
+    DOM.fnbTableEmpty.classList.add("hidden");
+
+    records.forEach(r => {
+      const tr = document.createElement("tr");
+
+      const kv = Number(r.kiotviet_revenue) || 0;
+      const cash = Number(r.cash_amount) || 0;
+      const mb = Number(r.mb_bank_amount) || 0;
+      const collected = cash + mb;
+      const diff = collected - kv;
+
+      let badgeHtml = '<span class="badge badge-matched">Khớp 100%</span>';
+      let diffClass = "text-positive font-bold";
+      let diffSign = "";
+
+      if (diff > 0) {
+        badgeHtml = '<span class="badge badge-surplus">Thừa tiền</span>';
+        diffSign = "+";
+      } else if (diff < 0) {
+        badgeHtml = '<span class="badge badge-deficit">Thiếu tiền</span>';
+        diffClass = "text-negative font-bold";
+      }
+
+      tr.innerHTML = `
+        <td style="font-weight: 600;">${formatDateVN(r.reconciliation_date)}</td>
+        <td style="text-align: right; font-weight: 500;">${window.DashboardManager.formatVND(kv)}</td>
+        <td style="text-align: right; color: var(--text-main);">${window.DashboardManager.formatVND(cash)}</td>
+        <td style="text-align: right; color: var(--text-main);">${window.DashboardManager.formatVND(mb)}</td>
+        <td style="text-align: right; font-weight: 600; color: var(--income-green);">${window.DashboardManager.formatVND(collected)}</td>
+        <td style="text-align: right;" class="${diffClass}">${diffSign}${window.DashboardManager.formatVND(diff)}</td>
+        <td style="text-align: center;">${badgeHtml}</td>
+        <td>
+          <div style="font-weight: 500; color: ${diff !== 0 ? 'var(--text-main)' : 'var(--text-muted)'};">
+            ${escapeHtml(r.discrepancy_reason || (diff === 0 ? "Khớp số liệu" : "Chưa có lý do"))}
+          </div>
+          ${r.notes ? `<small style="color: var(--text-muted);">Ghi chú: ${escapeHtml(r.notes)}</small>` : ""}
+        </td>
+        <td style="text-align: center;">
+          <div class="action-btns" style="justify-content: center;">
+            <button class="btn btn-sm btn-outline btn-edit-fnb" data-id="${r.id}" title="Sửa">✏️</button>
+            <button class="btn btn-sm btn-outline btn-delete-fnb" data-id="${r.id}" title="Xóa" style="color: var(--expense-red);">🗑️</button>
+          </div>
+        </td>
+      `;
+
+      DOM.fnbRecTbody.appendChild(tr);
+    });
+
+    // Gắn sự kiện nút Sửa & Xóa F&B
+    DOM.fnbRecTbody.querySelectorAll(".btn-edit-fnb").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = Number(btn.getAttribute("data-id"));
+        const record = AppState.currentFnbReconciliations.find(r => r.id === id);
+        if (record) {
+          populateInlineFnbForm(record);
+          if (DOM.inlineFormCard) {
+            DOM.inlineFormCard.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+          showToast(`Đang chỉnh sửa đối soát ngày ${formatDateVN(record.reconciliation_date)} trên form.`, "info");
+        }
+      });
+    });
+
+    DOM.fnbRecTbody.querySelectorAll(".btn-delete-fnb").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = Number(btn.getAttribute("data-id"));
+        openDeleteFnbRecModal(id);
+      });
+    });
+  }
+
+  // ================= SALARY & BANK EXPENSES LOGIC =================
+  function setupSalaryBankEvents() {
+    if (!DOM.formInlineSalaryBank && !DOM.btnAddSalaryBank) return;
+
+    // 1. Chuyển đổi loại: Chi Lương vs Chi Chuyển Khoản khác
+    function updateSbCategoryDropdown(selectedCategory = null) {
+      if (!DOM.sbCategory) return;
+      const type = DOM.sbType.value || "bank_transfer";
+      DOM.sbCategory.innerHTML = "";
+
+      let categories = [];
+      if (type === "salary") {
+        categories = [
+          { val: "salary_fixed", label: "Lương cứng / Lương tháng" },
+          { val: "salary_shift", label: "Lương ca / Công nhật / Part-time" },
+          { val: "salary_advance", label: "Tạm ứng lương" },
+          { val: "salary_bonus", label: "Thưởng & Phụ cấp" },
+          { val: "other_expense", label: "Khác về nhân sự" }
+        ];
+      } else {
+        categories = [
+          { val: "supplier_payment", label: "Thanh toán NCC / Tiền hàng" },
+          { val: "rent_utility", label: "Thuê mặt bằng / Điện nước / Net" },
+          { val: "operation_cost", label: "Chi phí vận hành & Dụng cụ" },
+          { val: "tax_fee", label: "Thuế, phí & Dịch vụ ngoài" },
+          { val: "other_expense", label: "Chi chuyển khoản khác" }
+        ];
+      }
+
+      categories.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c.val;
+        opt.textContent = c.label;
+        if (selectedCategory && selectedCategory === c.val) {
+          opt.selected = true;
+        }
+        DOM.sbCategory.appendChild(opt);
+      });
+    }
+
+    if (DOM.btnSbTypeSalary && DOM.btnSbTypeTransfer) {
+      DOM.btnSbTypeSalary.addEventListener("click", () => {
+        DOM.sbType.value = "salary";
+        DOM.btnSbTypeSalary.classList.add("active", "type-expense");
+        DOM.btnSbTypeTransfer.classList.remove("active", "type-expense");
+        updateSbCategoryDropdown();
+      });
+
+      DOM.btnSbTypeTransfer.addEventListener("click", () => {
+        DOM.sbType.value = "bank_transfer";
+        DOM.btnSbTypeTransfer.classList.add("active", "type-expense");
+        DOM.btnSbTypeSalary.classList.remove("active", "type-expense");
+        updateSbCategoryDropdown();
+      });
+    }
+
+    // Khởi tạo danh mục ban đầu cho form
+    updateSbCategoryDropdown();
+
+    // 2. Format số tiền realtime
+    if (DOM.sbAmount) {
+      DOM.sbAmount.addEventListener("input", () => {
+        const val = Number(DOM.sbAmount.value) || 0;
+        DOM.sbAmountPreview.textContent = window.DashboardManager.formatVND(val);
+      });
+    }
+
+    // 3. Nút Làm mới form
+    if (DOM.btnSbResetForm) {
+      DOM.btnSbResetForm.addEventListener("click", () => {
+        resetInlineSbForm();
+        showToast("Đã làm mới form nhập chi phí.", "info");
+      });
+    }
+
+    // Nút scroll đến form khi bấm "+ Nhập khoản chi mới"
+    if (DOM.btnAddSalaryBank) {
+      DOM.btnAddSalaryBank.addEventListener("click", () => {
+        resetInlineSbForm();
+        if (DOM.inlineSbFormCard) {
+          DOM.inlineSbFormCard.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+        if (DOM.sbRecipient) DOM.sbRecipient.focus();
+      });
+    }
+
+    // 4. Submit Form ghi nhận chi phí vào Supabase
+    if (DOM.formInlineSalaryBank) {
+      DOM.formInlineSalaryBank.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const amount = Number(DOM.sbAmount.value) || 0;
+        if (amount <= 0) {
+          showToast("Vui lòng nhập số tiền chi lớn hơn 0.", "warning");
+          if (DOM.sbAmount) DOM.sbAmount.focus();
+          return;
+        }
+
+        if (!DOM.sbUnit.value) {
+          showToast("Vui lòng chọn mảng hoạt động.", "warning");
+          if (DOM.sbUnit) DOM.sbUnit.focus();
+          return;
+        }
+
+        const formData = {
+          id: DOM.sbId.value ? Number(DOM.sbId.value) : null,
+          expense_date: DOM.sbDate.value || getTodayString(),
+          business_unit_id: Number(DOM.sbUnit.value),
+          expense_type: DOM.sbType.value || "bank_transfer",
+          expense_category: DOM.sbCategory.value || "other_expense",
+          recipient_name: DOM.sbRecipient.value.trim(),
+          recipient_bank: DOM.sbRecipientBank.value.trim() || null,
+          recipient_account: DOM.sbRecipientAccount.value.trim() || null,
+          amount: amount,
+          source_bank: DOM.sbSourceBank.value.trim() || "MB Bank",
+          reference_no: DOM.sbRef.value.trim() || null,
+          description: DOM.sbDesc.value.trim() || null,
+          notes: DOM.sbNotes.value.trim() || null
+        };
+
+        DOM.btnSaveSalaryBank.disabled = true;
+        DOM.btnSaveSalaryBank.textContent = "Đang lưu vào Supabase...";
+
+        try {
+          await window.SalaryBankExpenseService.saveExpense(formData);
+          const isEdit = !!formData.id;
+          showToast(
+            isEdit ? "Đã cập nhật khoản chi thành công!" : "Đã lưu khoản chi mới thành công!",
+            "success"
+          );
+
+          resetInlineSbForm();
+          await applySalaryBankFilters();
+        } catch (err) {
+          console.error("Lỗi khi lưu khoản chi:", err);
+          showToast("Không thể lưu chi phí: " + (err.message || "Lỗi RLS hoặc kết nối"), "error");
+        } finally {
+          DOM.btnSaveSalaryBank.disabled = false;
+          DOM.btnSaveSalaryBank.textContent = "💾 Lưu Khoản Chi vào Supabase";
+        }
+      });
+    }
+
+    // 5. Bộ lọc chi phí
+    if (DOM.sbPresetBtns) {
+      DOM.sbPresetBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+          DOM.sbPresetBtns.forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+
+          const preset = btn.getAttribute("data-preset");
+          applySbDatePreset(preset);
+          applySalaryBankFilters();
+        });
+      });
+    }
+
+    if (DOM.sbFilterUnit) {
+      DOM.sbFilterUnit.addEventListener("change", () => applySalaryBankFilters());
+    }
+    if (DOM.sbFilterType) {
+      DOM.sbFilterType.addEventListener("change", () => applySalaryBankFilters());
+    }
+
+    if (DOM.btnSbApplyFilter) {
+      DOM.btnSbApplyFilter.addEventListener("click", () => applySalaryBankFilters());
+    }
+
+    if (DOM.btnSbResetFilter) {
+      DOM.btnSbResetFilter.addEventListener("click", () => {
+        DOM.sbFilterStartDate.value = "";
+        DOM.sbFilterEndDate.value = "";
+        if (DOM.sbFilterUnit) DOM.sbFilterUnit.value = "";
+        if (DOM.sbFilterType) DOM.sbFilterType.value = "all";
+        if (DOM.sbFilterSearch) DOM.sbFilterSearch.value = "";
+
+        DOM.sbPresetBtns.forEach(b => b.classList.remove("active"));
+        const allBtn = document.querySelector('.sb-preset-btn[data-preset="all"]');
+        if (allBtn) allBtn.classList.add("active");
+
+        applySalaryBankFilters();
+      });
+    }
+
+    if (DOM.sbFilterSearch) {
+      DOM.sbFilterSearch.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") applySalaryBankFilters();
+      });
+    }
+
+    // 6. Xóa khoản chi
+    if (DOM.btnConfirmSbDelete) {
+      DOM.btnConfirmSbDelete.addEventListener("click", async () => {
+        const id = DOM.sbDeleteTargetId.value ? Number(DOM.sbDeleteTargetId.value) : null;
+        if (!id) return;
+
+        DOM.btnConfirmSbDelete.disabled = true;
+        DOM.btnConfirmSbDelete.textContent = "Đang xóa...";
+
+        try {
+          await window.SalaryBankExpenseService.deleteExpense(id);
+          showToast("Đã xóa khoản chi thành công.", "success");
+          closeModal(DOM.modalSbDelete);
+
+          // Nếu đang sửa chính dòng này trên inline form thì reset
+          if (AppState.editingSalaryBankExpenseId === id) {
+            resetInlineSbForm();
+          }
+
+          await applySalaryBankFilters();
+        } catch (err) {
+          console.error("Lỗi khi xóa khoản chi:", err);
+          showToast("Không thể xóa khoản chi: " + (err.message || "Lỗi Supabase"), "error");
+        } finally {
+          DOM.btnConfirmSbDelete.disabled = false;
+          DOM.btnConfirmSbDelete.textContent = "Xóa bản ghi";
+        }
+      });
+    }
+  }
+
+  function resetInlineSbForm() {
+    AppState.editingSalaryBankExpenseId = null;
+    if (DOM.sbId) DOM.sbId.value = "";
+    if (DOM.sbDate) DOM.sbDate.value = getTodayString();
+    if (DOM.sbRecipient) DOM.sbRecipient.value = "";
+    if (DOM.sbAmount) DOM.sbAmount.value = "";
+    if (DOM.sbAmountPreview) DOM.sbAmountPreview.textContent = "0 ₫";
+    if (DOM.sbSourceBank) DOM.sbSourceBank.value = "MB Bank";
+    if (DOM.sbRecipientBank) DOM.sbRecipientBank.value = "";
+    if (DOM.sbRecipientAccount) DOM.sbRecipientAccount.value = "";
+    if (DOM.sbRef) DOM.sbRef.value = "";
+    if (DOM.sbDesc) DOM.sbDesc.value = "";
+    if (DOM.sbNotes) DOM.sbNotes.value = "";
+
+    if (DOM.inlineSbFormTitle) {
+      DOM.inlineSbFormTitle.innerHTML = `<span>💳 Nhập Chi Phí Lương & Chuyển Khoản Theo Mảng</span><span id="inline-sb-badge-mode" class="badge badge-neutral" style="font-size: 0.75rem;">Tạo mới</span>`;
+    }
+    if (DOM.btnSaveSalaryBank) {
+      DOM.btnSaveSalaryBank.textContent = "💾 Lưu Khoản Chi vào Supabase";
+    }
+  }
+
+  function populateInlineSbForm(record) {
+    AppState.editingSalaryBankExpenseId = record.id;
+    if (DOM.sbId) DOM.sbId.value = record.id;
+    if (DOM.sbDate) DOM.sbDate.value = record.expense_date;
+    if (DOM.sbUnit) DOM.sbUnit.value = record.business_unit_id;
+
+    // Type
+    const type = record.expense_type || "bank_transfer";
+    if (DOM.sbType) DOM.sbType.value = type;
+    if (type === "salary") {
+      if (DOM.btnSbTypeSalary) DOM.btnSbTypeSalary.classList.add("active", "type-expense");
+      if (DOM.btnSbTypeTransfer) DOM.btnSbTypeTransfer.classList.remove("active", "type-expense");
+    } else {
+      if (DOM.btnSbTypeTransfer) DOM.btnSbTypeTransfer.classList.add("active", "type-expense");
+      if (DOM.btnSbTypeSalary) DOM.btnSbTypeSalary.classList.remove("active", "type-expense");
+    }
+
+    // Category
+    if (DOM.sbCategory) {
+      DOM.sbCategory.innerHTML = "";
+      let categories = [];
+      if (type === "salary") {
+        categories = [
+          { val: "salary_fixed", label: "Lương cứng / Lương tháng" },
+          { val: "salary_shift", label: "Lương ca / Công nhật / Part-time" },
+          { val: "salary_advance", label: "Tạm ứng lương" },
+          { val: "salary_bonus", label: "Thưởng & Phụ cấp" },
+          { val: "other_expense", label: "Khác về nhân sự" }
+        ];
+      } else {
+        categories = [
+          { val: "supplier_payment", label: "Thanh toán NCC / Tiền hàng" },
+          { val: "rent_utility", label: "Thuê mặt bằng / Điện nước / Net" },
+          { val: "operation_cost", label: "Chi phí vận hành & Dụng cụ" },
+          { val: "tax_fee", label: "Thuế, phí & Dịch vụ ngoài" },
+          { val: "other_expense", label: "Chi chuyển khoản khác" }
+        ];
+      }
+      categories.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c.val;
+        opt.textContent = c.label;
+        if (c.val === record.expense_category) opt.selected = true;
+        DOM.sbCategory.appendChild(opt);
+      });
+    }
+
+    if (DOM.sbRecipient) DOM.sbRecipient.value = record.recipient_name || "";
+    if (DOM.sbAmount) DOM.sbAmount.value = record.amount || "";
+    if (DOM.sbAmountPreview) DOM.sbAmountPreview.textContent = window.DashboardManager.formatVND(record.amount || 0);
+    if (DOM.sbSourceBank) DOM.sbSourceBank.value = record.source_bank || "MB Bank";
+    if (DOM.sbRecipientBank) DOM.sbRecipientBank.value = record.recipient_bank || "";
+    if (DOM.sbRecipientAccount) DOM.sbRecipientAccount.value = record.recipient_account || "";
+    if (DOM.sbRef) DOM.sbRef.value = record.reference_no || "";
+    if (DOM.sbDesc) DOM.sbDesc.value = record.description || "";
+    if (DOM.sbNotes) DOM.sbNotes.value = record.notes || "";
+
+    if (DOM.inlineSbFormTitle) {
+      DOM.inlineSbFormTitle.innerHTML = `<span>✏️ Chỉnh Sửa Khoản Chi #${record.id}</span><span id="inline-sb-badge-mode" class="badge badge-warning" style="font-size: 0.75rem;">Đang sửa</span>`;
+    }
+    if (DOM.btnSaveSalaryBank) {
+      DOM.btnSaveSalaryBank.textContent = "💾 Cập nhật Khoản Chi";
+    }
+  }
+
+  function applySbDatePreset(preset) {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = today.getMonth();
+
+    if (preset === "today") {
+      const dStr = getTodayString();
+      DOM.sbFilterStartDate.value = dStr;
+      DOM.sbFilterEndDate.value = dStr;
+    } else if (preset === "month") {
+      const firstDay = new Date(y, m, 1);
+      const lastDay = new Date(y, m + 1, 0);
+      DOM.sbFilterStartDate.value = formatDateIso(firstDay);
+      DOM.sbFilterEndDate.value = formatDateIso(lastDay);
+    } else if (preset === "quarter") {
+      const qMonth = Math.floor(m / 3) * 3;
+      const firstDay = new Date(y, qMonth, 1);
+      const lastDay = new Date(y, qMonth + 3, 0);
+      DOM.sbFilterStartDate.value = formatDateIso(firstDay);
+      DOM.sbFilterEndDate.value = formatDateIso(lastDay);
+    } else if (preset === "all") {
+      DOM.sbFilterStartDate.value = "";
+      DOM.sbFilterEndDate.value = "";
+    }
+  }
+
+  async function applySalaryBankFilters() {
+    if (!window.SalaryBankExpenseService) return;
+
+    const filters = {
+      startDate: DOM.sbFilterStartDate ? DOM.sbFilterStartDate.value || null : null,
+      endDate: DOM.sbFilterEndDate ? DOM.sbFilterEndDate.value || null : null,
+      businessUnitId: DOM.sbFilterUnit && DOM.sbFilterUnit.value ? Number(DOM.sbFilterUnit.value) : null,
+      expenseType: DOM.sbFilterType ? DOM.sbFilterType.value || "all" : "all",
+      search: DOM.sbFilterSearch ? DOM.sbFilterSearch.value.trim() : null
+    };
+
+    if (DOM.sbTableLoading) DOM.sbTableLoading.classList.remove("hidden");
+    if (DOM.sbTableEmpty) DOM.sbTableEmpty.classList.add("hidden");
+
+    try {
+      const expenses = await window.SalaryBankExpenseService.getExpenses(filters);
+      AppState.currentSalaryBankExpenses = expenses;
+
+      const summary = window.SalaryBankExpenseService.calculateSummary(expenses);
+      updateSalaryBankKpiCards(summary);
+      renderSalaryBankTable(expenses);
+    } catch (err) {
+      console.error("Lỗi khi tải sổ chi lương và chuyển khoản:", err);
+      showToast("Lỗi khi tải dữ liệu chi phí: " + (err.message || "Kiểm tra RLS Supabase"), "error");
+    } finally {
+      if (DOM.sbTableLoading) DOM.sbTableLoading.classList.add("hidden");
+    }
+  }
+
+  function updateSalaryBankKpiCards(summary) {
+    if (!summary) return;
+
+    if (DOM.sbKpiTotal) {
+      DOM.sbKpiTotal.textContent = window.DashboardManager.formatVND(summary.totalAmount);
+    }
+    if (DOM.sbKpiSubStats) {
+      DOM.sbKpiSubStats.textContent = `Lương: ${window.DashboardManager.formatVND(summary.totalSalary)} | CK khác: ${window.DashboardManager.formatVND(summary.totalBankTransfer)}`;
+    }
+
+    const sm = summary.unitsSummary.SON_MAI || { amount: 0, count: 0 };
+    if (DOM.sbKpiSonmai) DOM.sbKpiSonmai.textContent = window.DashboardManager.formatVND(sm.amount);
+    if (DOM.sbKpiSonmaiCount) DOM.sbKpiSonmaiCount.textContent = `${sm.count} khoản chi`;
+
+    const fnb = summary.unitsSummary.FNB || { amount: 0, count: 0 };
+    if (DOM.sbKpiFnb) DOM.sbKpiFnb.textContent = window.DashboardManager.formatVND(fnb.amount);
+    if (DOM.sbKpiFnbCount) DOM.sbKpiFnbCount.textContent = `${fnb.count} khoản chi`;
+
+    const vp = summary.unitsSummary.VAN_PHONG || { amount: 0, count: 0 };
+    if (DOM.sbKpiVanphong) DOM.sbKpiVanphong.textContent = window.DashboardManager.formatVND(vp.amount);
+    if (DOM.sbKpiVanphongCount) DOM.sbKpiVanphongCount.textContent = `${vp.count} khoản chi`;
+  }
+
+  function renderSalaryBankTable(expenses) {
+    if (!DOM.sbTbody) return;
+    DOM.sbTbody.innerHTML = "";
+
+    if (!expenses || expenses.length === 0) {
+      if (DOM.sbTableEmpty) DOM.sbTableEmpty.classList.remove("hidden");
+      return;
+    }
+
+    if (DOM.sbTableEmpty) DOM.sbTableEmpty.classList.add("hidden");
+
+    const categoryLabels = window.SalaryBankExpenseService.CATEGORY_LABELS || {};
+
+    expenses.forEach(e => {
+      const tr = document.createElement("tr");
+
+      const uCode = e.business_units?.code || "OTHER";
+      let unitBadge = `<span class="badge badge-neutral">${escapeHtml(e.business_units?.name || "Khác")}</span>`;
+      if (uCode === "SON_MAI") {
+        unitBadge = `<span class="badge badge-sonmai">SƠN MÀI</span>`;
+      } else if (uCode === "FNB") {
+        unitBadge = `<span class="badge badge-fnb">F&B</span>`;
+      } else if (uCode === "VAN_PHONG") {
+        unitBadge = `<span class="badge badge-office">VĂN PHÒNG</span>`;
+      }
+
+      const isSalary = e.expense_type === "salary";
+      const catText = categoryLabels[e.expense_category] || e.expense_category || "Chi phí";
+      const catBadge = isSalary
+        ? `<span class="badge" style="background: #ede9fe; color: #6d28d9;">👥 ${catText}</span>`
+        : `<span class="badge badge-neutral">🏦 ${catText}</span>`;
+
+      const amt = Number(e.amount) || 0;
+      const bankInfo = e.recipient_bank
+        ? `<strong>${escapeHtml(e.recipient_bank)}</strong><br><span style="font-family: monospace; font-size: 0.82rem; color: var(--text-muted);">${escapeHtml(e.recipient_account || "")}</span>`
+        : `<span style="color: var(--text-muted); font-size: 0.82rem;">${escapeHtml(e.recipient_account || "N/A")}</span>`;
+
+      tr.innerHTML = `
+        <td style="font-weight: 600;">${formatDateVN(e.expense_date)}</td>
+        <td>${unitBadge}</td>
+        <td>${catBadge}</td>
+        <td>
+          <div style="font-weight: 600; color: var(--text-main);">${escapeHtml(e.recipient_name)}</div>
+          <small style="color: var(--text-muted);">Trích từ: ${escapeHtml(e.source_bank || "MB Bank")}</small>
+        </td>
+        <td style="text-align: right; font-weight: 700; color: var(--expense-red); font-size: 0.95rem;">
+          ${window.DashboardManager.formatVND(amt)}
+        </td>
+        <td>${bankInfo}</td>
+        <td>
+          <div style="font-weight: 500;">${escapeHtml(e.description || "—")}</div>
+          ${e.reference_no ? `<small style="font-family: monospace; color: #2563eb; background: #eff6ff; padding: 2px 5px; border-radius: 3px;">Mã: ${escapeHtml(e.reference_no)}</small>` : ""}
+          ${e.notes ? `<br><small style="color: var(--text-muted);">Ghi chú: ${escapeHtml(e.notes)}</small>` : ""}
+        </td>
+        <td style="text-align: center;">
+          <div class="action-btns" style="justify-content: center;">
+            <button class="btn btn-sm btn-outline btn-edit-sb" data-id="${e.id}" title="Sửa khoản chi">✏️</button>
+            <button class="btn btn-sm btn-outline btn-delete-sb" data-id="${e.id}" title="Xóa khoản chi" style="color: var(--expense-red);">🗑️</button>
+          </div>
+        </td>
+      `;
+
+      DOM.sbTbody.appendChild(tr);
+    });
+
+    // Sự kiện Sửa & Xóa
+    DOM.sbTbody.querySelectorAll(".btn-edit-sb").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = Number(btn.getAttribute("data-id"));
+        const record = AppState.currentSalaryBankExpenses.find(x => x.id === id);
+        if (record) {
+          populateInlineSbForm(record);
+          if (DOM.inlineSbFormCard) {
+            DOM.inlineSbFormCard.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+          if (DOM.sbAmount) DOM.sbAmount.focus();
+          showToast(`Đang chỉnh sửa khoản chi #${id} trên form.`, "info");
+        }
+      });
+    });
+
+    DOM.sbTbody.querySelectorAll(".btn-delete-sb").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = Number(btn.getAttribute("data-id"));
+        if (DOM.sbDeleteTargetId) DOM.sbDeleteTargetId.value = id;
+        openModal(DOM.modalSbDelete);
+      });
+    });
+  }
+
+  // ================= EXCEL TEMPLATES & IMPORT EVENTS =================
+  function setupExcelImportEvents() {
+    if (!DOM.modalExcelImport) return;
+
+    // 1. Mở modal từ nút trên Header
+    if (DOM.btnOpenExcelModal) {
+      DOM.btnOpenExcelModal.addEventListener("click", () => {
+        resetExcelImportModal();
+        openModal(DOM.modalExcelImport);
+      });
+    }
+
+    // 2. Mở modal từ các nút "📥 Import Excel" ở từng View
+    if (DOM.btnTriggerImports) {
+      DOM.btnTriggerImports.forEach(btn => {
+        btn.addEventListener("click", () => {
+          const importType = btn.getAttribute("data-import-type") || "transactions";
+          resetExcelImportModal();
+          if (DOM.excelTargetType) DOM.excelTargetType.value = importType;
+          openModal(DOM.modalExcelImport);
+        });
+      });
+    }
+
+    // 3. Reset trạng thái khi đổi loại import hoặc chọn file
+    if (DOM.excelTargetType) {
+      DOM.excelTargetType.addEventListener("change", () => {
+        if (DOM.excelPreviewBox) DOM.excelPreviewBox.classList.add("hidden");
+        if (DOM.excelErrorBox) DOM.excelErrorBox.classList.add("hidden");
+      });
+    }
+
+    if (DOM.excelFileInput) {
+      DOM.excelFileInput.addEventListener("change", async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+
+        if (DOM.excelPreviewBox) DOM.excelPreviewBox.classList.add("hidden");
+        if (DOM.excelErrorBox) DOM.excelErrorBox.classList.add("hidden");
+
+        try {
+          const rows = await window.ExcelImportService.parseExcelFile(file);
+          if (DOM.excelPreviewBox && DOM.excelPreviewText) {
+            DOM.excelPreviewText.textContent = `✅ Đã đọc tệp: "${file.name}" — tìm thấy ${rows.length} dòng dữ liệu.`;
+            DOM.excelPreviewBox.classList.remove("hidden");
+          }
+        } catch (err) {
+          if (DOM.excelErrorBox && DOM.excelErrorText) {
+            DOM.excelErrorText.textContent = `❌ ${err.message}`;
+            DOM.excelErrorBox.classList.remove("hidden");
+          }
+        }
+      });
+    }
+
+    // 4. Bắt đầu Import
+    if (DOM.btnSubmitExcelImport) {
+      DOM.btnSubmitExcelImport.addEventListener("click", async () => {
+        const file = DOM.excelFileInput && DOM.excelFileInput.files && DOM.excelFileInput.files[0];
+        if (!file) {
+          showToast("Vui lòng chọn một file Excel (.xlsx) trước khi bấm Import.", "warning");
+          if (DOM.excelFileInput) DOM.excelFileInput.focus();
+          return;
+        }
+
+        const targetType = DOM.excelTargetType ? DOM.excelTargetType.value : "transactions";
+
+        DOM.btnSubmitExcelImport.disabled = true;
+        DOM.btnSubmitExcelImport.textContent = "Đang xử lý import...";
+        if (DOM.excelErrorBox) DOM.excelErrorBox.classList.add("hidden");
+
+        try {
+          const rows = await window.ExcelImportService.parseExcelFile(file);
+          if (!rows || rows.length === 0) {
+            throw new Error("Tệp Excel rỗng hoặc không có dữ liệu ở Sheet đầu tiên.");
+          }
+
+          let result;
+          if (targetType === "transactions") {
+            result = await window.ExcelImportService.importTransactions(
+              rows,
+              AppState.businessUnits,
+              AppState.categories
+            );
+            await applyFilters();
+          } else if (targetType === "fnb_reconciliation") {
+            result = await window.ExcelImportService.importFnbReconciliations(rows);
+            await applyFnbFilters();
+          } else if (targetType === "salary_bank") {
+            result = await window.ExcelImportService.importSalaryBankExpenses(
+              rows,
+              AppState.businessUnits
+            );
+            await applySalaryBankFilters();
+          }
+
+          let msg = `🎉 Import thành công ${result.successCount}/${result.totalRows} bản ghi vào Supabase!`;
+          showToast(msg, "success");
+
+          if (result.errors && result.errors.length > 0) {
+            if (DOM.excelErrorBox && DOM.excelErrorText) {
+              DOM.excelErrorText.textContent = `⚠️ Đã nhập ${result.successCount} dòng. Lưu ý các dòng sau bị bỏ qua:\n` + result.errors.slice(0, 10).join("\n");
+              DOM.excelErrorBox.classList.remove("hidden");
+            }
+          } else {
+            closeModal(DOM.modalExcelImport);
+          }
+        } catch (err) {
+          console.error("Lỗi khi import Excel:", err);
+          showToast("Import thất bại: " + err.message, "error");
+          if (DOM.excelErrorBox && DOM.excelErrorText) {
+            DOM.excelErrorText.textContent = `❌ ${err.message}`;
+            DOM.excelErrorBox.classList.remove("hidden");
+          }
+        } finally {
+          DOM.btnSubmitExcelImport.disabled = false;
+          DOM.btnSubmitExcelImport.textContent = "🚀 Bắt đầu Import vào Supabase";
+        }
+      });
+    }
+  }
+
+  function resetExcelImportModal() {
+    if (DOM.excelFileInput) DOM.excelFileInput.value = "";
+    if (DOM.excelPreviewBox) DOM.excelPreviewBox.classList.add("hidden");
+    if (DOM.excelErrorBox) DOM.excelErrorBox.classList.add("hidden");
+    if (DOM.btnSubmitExcelImport) {
+      DOM.btnSubmitExcelImport.disabled = false;
+      DOM.btnSubmitExcelImport.textContent = "🚀 Bắt đầu Import vào Supabase";
+    }
+  }
+
+  // ================= INIT APPLICATION =================
+  function init() {
+    setupConfigEvents();
+    setupAuthEvents();
+    setupNavigationEvents();
+    setupFilterEvents();
+    setupTransactionModalEvents();
+    setupFnbReconciliationEvents();
+    setupSalaryBankEvents();
+    setupExcelImportEvents();
+
+    // Khởi tạo ngày hôm nay cho modals và form nhập liệu
+    DOM.txDate.value = getTodayString();
+    if (DOM.recDate) DOM.recDate.value = getTodayString();
+    resetInlineFnbForm();
+    resetInlineSbForm();
+
+    // Khởi tạo Auth
+    initAuthAndSession();
+  }
+
+  // Chạy khi DOM đã sẵn sàng
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+
