@@ -109,7 +109,7 @@
         targetUnit.txCount += 1;
       });
 
-      // B. Tổng hợp từ Đối soát F&B
+      // B. Tổng hợp từ Đối soát F&B (Chính là phần tổng thu F&B)
       let fnbKiotvietTotal = 0;
       let fnbCollectedTotal = 0;
       let fnbCashTotal = 0;
@@ -121,10 +121,10 @@
 
       fnbRecs.forEach(r => {
         const kv = Number(r.kiotviet_revenue) || 0;
-        const cash = Number(r.actual_cash_collected) || 0;
-        const bank = Number(r.mb_bank_transfer) || 0;
-        const collected = cash + bank;
-        const diff = Number(r.difference) || 0;
+        const cash = Number(r.cash_amount !== undefined ? r.cash_amount : r.actual_cash_collected) || 0;
+        const bank = Number(r.mb_bank_amount !== undefined ? r.mb_bank_amount : r.mb_bank_transfer) || 0;
+        const collected = Number(r.total_collected !== undefined ? r.total_collected : (cash + bank)) || (cash + bank);
+        const diff = Number(r.difference !== undefined ? r.difference : (collected - kv)) || 0;
 
         fnbKiotvietTotal += kv;
         fnbCashTotal += cash;
@@ -135,7 +135,14 @@
         if (diff === 0) fnbMatchedDays += 1;
         else fnbDiscrepantDays += 1;
       });
+
+      // Đối soát F&B chính là nguồn tổng thu của mảng F&B
+      // Nếu có đối soát F&B thì lấy số thực thu F&B làm doanh thu F&B, nếu không có đối soát thì dùng thu từ Sổ chung
+      const fnbRecordedIncome = units.FNB.income; // Thu từ sổ chung (nếu có)
+      const fnbActualIncome = fnbCollectedTotal > 0 ? fnbCollectedTotal : fnbRecordedIncome;
+      units.FNB.income = fnbActualIncome;
       units.FNB.fnbRevenue = fnbCollectedTotal;
+      units.FNB.txIncome = fnbRecordedIncome;
 
       // C. Tổng hợp từ Chi Lương & Chuyển Khoản
       let sbTotalSalary = 0;
@@ -169,13 +176,15 @@
       });
 
       // E. TỔNG HỢP TOÀN DOANH NGHIỆP
-      // Tổng thu = Tổng thu sổ chung
-      const grandTotalIncome = txTotalIncome;
+      // Tổng thu hợp nhất = Thu Sơn Mài + Thu Văn Phòng + Thu Khác (từ Sổ chung) + Thu F&B (từ Đối Soát Bán Hàng)
+      const otherUnitsIncome = (units.SON_MAI.income || 0) + (units.VAN_PHONG.income || 0) + (units.OTHER.income || 0);
+      const grandTotalIncome = otherUnitsIncome + units.FNB.income;
+
       // Tổng chi hợp nhất = Sổ chi chung + Chi lương & CK
       const grandTotalExpense = txTotalExpense + sbTotalExpense;
       const grandNetBalance = grandTotalIncome - grandTotalExpense;
 
-      // F. Timeline theo ngày (để vẽ bảng tiến độ hoặc xu hướng thu chi)
+      // F. Timeline theo ngày (hợp nhất thu F&B thực thu vào doanh thu từng ngày)
       const dailyMap = {};
       const registerDay = (dateStr) => {
         if (!dateStr) return;
@@ -192,12 +201,23 @@
         }
       };
 
+      // 1. Ghi nhận giao dịch sổ chung (không tính trùng thu F&B nếu ngày đó đã có đối soát F&B)
+      const fnbDateSet = new Set(fnbRecs.map(f => f.reconciliation_date));
+
       transactions.forEach(t => {
         registerDay(t.transaction_date);
         const day = dailyMap[t.transaction_date];
         const amt = Number(t.amount) || 0;
-        if (t.transaction_type === "income") day.income += amt;
-        else day.txExpense += amt;
+        const isFnbTx = t.business_units?.code === "FNB";
+
+        if (t.transaction_type === "income") {
+          // Nếu là thu F&B và ngày này có đối soát F&B riêng, không cộng trùng ở đây
+          if (!isFnbTx || !fnbDateSet.has(t.transaction_date)) {
+            day.income += amt;
+          }
+        } else {
+          day.txExpense += amt;
+        }
       });
 
       salaryBankExpenses.forEach(s => {
@@ -210,7 +230,12 @@
       fnbRecs.forEach(f => {
         registerDay(f.reconciliation_date);
         const day = dailyMap[f.reconciliation_date];
-        day.fnbRevenue += (Number(f.actual_cash_collected) || 0) + (Number(f.mb_bank_transfer) || 0);
+        const cash = Number(f.cash_amount !== undefined ? f.cash_amount : f.actual_cash_collected) || 0;
+        const bank = Number(f.mb_bank_amount !== undefined ? f.mb_bank_amount : f.mb_bank_transfer) || 0;
+        const collected = Number(f.total_collected !== undefined ? f.total_collected : (cash + bank)) || (cash + bank);
+
+        day.fnbRevenue += collected;
+        day.income += collected; // Thu F&B cộng trực tiếp vào tổng thu của ngày
       });
 
       const timeline = Object.values(dailyMap).sort((a, b) => b.date.localeCompare(a.date));
@@ -274,19 +299,21 @@
         [`Ngày xuất: ${new Date().toLocaleString("vi-VN")}`],
         [],
         ["1. CHỈ SỐ TÀI CHÍNH TỔNG HỢP", "GIÁ TRỊ (VND)"],
-        ["Tổng Thu Hợp Nhất (Thu sổ chung)", reportData.grandTotalIncome],
+        ["Tổng Thu Hợp Nhất (Sơn Mài + VP + Đối Soát F&B)", reportData.grandTotalIncome],
+        ["  - Doanh thu thực thu F&B (Từ Đối Soát Bán Hàng)", reportData.units.FNB.income],
+        ["  - Thu mảng Sơn Mài & Văn Phòng (Từ Sổ Chung)", (reportData.grandTotalIncome - reportData.units.FNB.income)],
         ["Tổng Chi Hợp Nhất (Chi sổ + Lương & CK)", reportData.grandTotalExpense],
         ["  - Chi phí từ Sổ chung", reportData.sourceDetails.transactions.totalExpense],
         ["  - Chi phí Lương nhân sự", reportData.sourceDetails.salaryBank.totalSalary],
         ["  - Chi phí Chuyển khoản vận hành", reportData.sourceDetails.salaryBank.totalBankTransfer],
         ["Chênh Lệch Thu - Chi Ròng", reportData.grandNetBalance],
         [],
-        ["2. ĐỐI SOÁT DOANH THU F&B", ""],
-        ["Doanh thu KiotViet", reportData.sourceDetails.fnb.kiotvietTotal],
-        ["Thực thu KiotViet (Tiền mặt + MB)", reportData.sourceDetails.fnb.collectedTotal],
+        ["2. ĐỐI SOÁT DOANH THU F&B (NGUỒN THU CHÍNH F&B)", ""],
+        ["Doanh thu phần mềm KiotViet", reportData.sourceDetails.fnb.kiotvietTotal],
+        ["Thực thu thực tế F&B (Tiền mặt + Chuyển khoản MB)", reportData.sourceDetails.fnb.collectedTotal],
         ["  - Thực thu tiền mặt", reportData.sourceDetails.fnb.cashTotal],
         ["  - Chuyển khoản MB", reportData.sourceDetails.fnb.bankTotal],
-        ["Chênh lệch đối soát F&B", reportData.sourceDetails.fnb.diffTotal],
+        ["Chênh lệch đối soát F&B (Thừa / Thiếu)", reportData.sourceDetails.fnb.diffTotal],
         ["Số ngày khớp / lệch", `${reportData.sourceDetails.fnb.matchedDays} ngày khớp / ${reportData.sourceDetails.fnb.discrepantDays} ngày lệch`],
         [],
         ["3. BÁO CÁO THEO TỪNG MẢNG KINH DOANH", "THU (VND)", "CHI SỔ CHUNG", "CHI LƯƠNG & CK", "TỔNG CHI", "CHÊNH LỆCH"]

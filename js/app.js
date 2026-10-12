@@ -315,6 +315,7 @@
     reportContentWrapper: document.getElementById("report-content-wrapper"),
 
     repGrandIncome: document.getElementById("rep-grand-income"),
+    repGrandIncomeSub: document.getElementById("rep-grand-income-sub"),
     repGrandExpense: document.getElementById("rep-grand-expense"),
     repGrandExpenseSub: document.getElementById("rep-grand-expense-sub"),
     repGrandNet: document.getElementById("rep-grand-net"),
@@ -2672,6 +2673,11 @@
     // 1. KPI TỔNG HỢP TOÀN HỆ THỐNG
     if (DOM.repGrandIncome) {
       DOM.repGrandIncome.textContent = window.DashboardManager.formatVND(data.grandTotalIncome);
+    }
+    if (DOM.repGrandIncomeSub) {
+      const fnbThu = window.DashboardManager.formatVND(data.units.FNB?.income || 0);
+      const otherThu = window.DashboardManager.formatVND((data.grandTotalIncome - (data.units.FNB?.income || 0)));
+      DOM.repGrandIncomeSub.textContent = `F&B (Đối soát): ${fnbThu} | Sơn Mài & VP: ${otherThu}`;
     }
 
     if (DOM.repGrandExpense) {
