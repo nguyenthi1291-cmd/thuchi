@@ -532,6 +532,8 @@
     if (DOM.btnOpenExcelModal) DOM.btnOpenExcelModal.classList.remove("hidden");
     if (DOM.mainNavTabs) DOM.mainNavTabs.classList.remove("hidden");
     DOM.authSection.classList.add("hidden");
+    DOM.appSection.classList.remove("hidden");
+
     // 0. Tải hồ sơ người dùng & phân quyền hệ thống
     try {
       await window.SystemService.getMyProfile();
