@@ -43,6 +43,9 @@
         <button id="nav-btn-salary-bank" class="nav-tab-btn" type="button">
           💳 Chi Lương & Chuyển Khoản
         </button>
+        <button id="nav-btn-system" class="nav-tab-btn" type="button">
+          ⚙️ Quản Lý Hệ Thống
+        </button>
       </nav>
 
       <div class="header-actions">
@@ -888,6 +891,117 @@
       </div>
       <!-- HẾT VIEW 3: CHI PHÍ LƯƠNG & CHUYỂN KHOẢN -->
 
+      <!-- ================= VIEW 4: QUẢN LÝ HỆ THỐNG & PHÂN QUYỀN ================= -->
+      <div id="view-system" class="app-view hidden">
+
+        <!-- THẺ THÔNG BÁO VAI TRÒ & QUYỀN HẠN CỦA TÔI -->
+        <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-sm); border-left: 5px solid var(--primary-color);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem;">
+                <span>🛡️ Tài Khoản & Quyền Hạn Của Bạn</span>
+                <span id="my-profile-role-badge" class="badge badge-primary">Admin</span>
+              </h3>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 3px;">
+                Email: <strong id="my-profile-email" style="color: var(--text-main);">-</strong> | 
+                Tên hiển thị: <strong id="my-profile-name" style="color: var(--text-main);">-</strong>
+              </p>
+            </div>
+            <div id="my-permissions-badges" style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+              <!-- Render động danh sách quyền của user -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 THẺ KPI HỆ THỐNG -->
+        <div class="dashboard-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 1.5rem;">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Tổng Người Dùng</span>
+              <span class="kpi-icon icon-count">👥</span>
+            </div>
+            <div id="sys-kpi-total-users" class="kpi-value">0</div>
+            <div class="kpi-footer">Tài khoản trong hệ thống</div>
+          </div>
+
+          <div class="kpi-card" style="border-top: 3px solid #dc2626;">
+            <div class="kpi-header">
+              <span class="kpi-title">Quản Trị Viên (Admin)</span>
+              <span class="badge badge-danger">ADMIN</span>
+            </div>
+            <div id="sys-kpi-admin-count" class="kpi-value">0</div>
+            <div class="kpi-footer">Toàn quyền hệ thống</div>
+          </div>
+
+          <div class="kpi-card" style="border-top: 3px solid #2563eb;">
+            <div class="kpi-header">
+              <span class="kpi-title">Quản Lý & Kế Toán</span>
+              <span class="badge badge-primary">MANAGER</span>
+            </div>
+            <div id="sys-kpi-manager-count" class="kpi-value">0</div>
+            <div class="kpi-footer">Quyền duyệt & sửa chi phí</div>
+          </div>
+
+          <div class="kpi-card" style="border-top: 3px solid #16a34a;">
+            <div class="kpi-header">
+              <span class="kpi-title">Đang Hoạt Động</span>
+              <span class="badge badge-matched">HOẠT ĐỘNG</span>
+            </div>
+            <div id="sys-kpi-active-count" class="kpi-value text-positive">0</div>
+            <div class="kpi-footer">Tài khoản được cấp phép</div>
+          </div>
+        </div>
+
+        <!-- BẢNG DANH SÁCH NGƯỜI DÙNG & PHÂN QUYỀN -->
+        <div class="table-panel">
+          <div class="table-header">
+            <div class="table-title-area">
+              <h3>Danh Sách Người Dùng & Phân Quyền Chi Tiết</h3>
+              <span>Quản lý phân quyền truy cập trang và thao tác (Thêm mới, Chỉnh sửa, Xóa, Import)</span>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <button id="btn-refresh-users" class="btn btn-outline btn-sm" title="Làm mới danh sách">
+                🔄 Làm mới
+              </button>
+            </div>
+          </div>
+
+          <!-- Loading -->
+          <div id="sys-table-loading" class="state-container hidden">
+            <div class="spinner"></div>
+            <div class="state-title">Đang tải danh sách người dùng từ Supabase...</div>
+          </div>
+
+          <!-- Empty -->
+          <div id="sys-table-empty" class="state-container hidden">
+            <div class="state-icon">👥</div>
+            <div class="state-title">Chưa có hồ sơ người dùng nào</div>
+            <p>Hồ sơ người dùng sẽ tự động tạo khi có thành viên đăng ký tài khoản vào hệ thống.</p>
+          </div>
+
+          <!-- Table -->
+          <div id="sys-table-wrapper" class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th style="width: 200px;">Người dùng</th>
+                  <th style="width: 130px; text-align: center;">Vai trò</th>
+                  <th style="width: 220px;">Trang được truy cập</th>
+                  <th style="width: 220px;">Quyền thao tác dữ liệu</th>
+                  <th style="width: 120px; text-align: center;">Trạng thái</th>
+                  <th style="width: 120px; text-align: center;">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="sys-users-tbody">
+                <!-- Render bằng JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+      <!-- HẾT VIEW 4: QUẢN LÝ HỆ THỐNG -->
+
     </section>
 
   </main>
@@ -1237,6 +1351,116 @@
     </div>
   </div>
 
+  <!-- ================= MODAL: PHÂN QUYỀN & CHỈNH SỬA NGƯỜI DÙNG ================= -->
+  <div id="modal-edit-user" class="modal-overlay">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 id="modal-edit-user-title">⚙️ Phân Quyền Người Dùng</h3>
+        <button type="button" class="close-btn" data-close-modal>&times;</button>
+      </div>
+
+      <form id="form-edit-user">
+        <input type="hidden" id="user-edit-id">
+
+        <div class="modal-body">
+          <div class="two-col-grid" style="margin-bottom: 1rem;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="user-edit-email">Email tài khoản</label>
+              <input type="text" id="user-edit-email" class="form-control" readonly style="background: var(--bg-hover); font-weight: 600;">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="user-edit-name">Họ và tên hiển thị</label>
+              <input type="text" id="user-edit-name" class="form-control" placeholder="Nhập tên người dùng...">
+            </div>
+          </div>
+
+          <div class="two-col-grid" style="margin-bottom: 1rem;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="user-edit-role">Vai trò chính (Role) <span class="required">*</span></label>
+              <select id="user-edit-role" class="form-control" required style="font-weight: 600;">
+                <option value="admin">Quản trị viên (Admin - Toàn quyền)</option>
+                <option value="manager">Quản lý (Manager)</option>
+                <option value="accountant">Kế toán (Accountant)</option>
+                <option value="staff">Nhân viên (Staff)</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="user-edit-status">Trạng thái tài khoản</label>
+              <select id="user-edit-status" class="form-control">
+                <option value="active">Đang hoạt động (Kích hoạt)</option>
+                <option value="inactive">Đã khóa / Tạm dừng</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- NHÓM QUYỀN 1: TRUY CẬP TRANG -->
+          <div style="border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin-bottom: 1rem; background: var(--bg-hover, #f8fafc);">
+            <div style="font-weight: 700; font-size: 0.88rem; color: var(--text-main); margin-bottom: 0.65rem;">
+              📄 Phân quyền truy cập các trang:
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem;">
+              <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                <input type="checkbox" id="perm-page-tx" checked>
+                <span>📑 Sổ Thu Chi Chung</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                <input type="checkbox" id="perm-page-fnb" checked>
+                <span>⚖️ Đối soát Bán hàng F&B</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                <input type="checkbox" id="perm-page-sb">
+                <span>💳 Chi Lương & Chuyển Khoản</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                <input type="checkbox" id="perm-page-sys">
+                <span>⚙️ Quản Lý Hệ Thống</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- NHÓM QUYỀN 2: THAO TÁC DỮ LIỆU -->
+          <div style="border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin-bottom: 1rem; background: var(--bg-hover, #f8fafc);">
+            <div style="font-weight: 700; font-size: 0.88rem; color: var(--text-main); margin-bottom: 0.65rem;">
+              ✏️ Phân quyền thao tác dữ liệu:
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem;">
+              <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                <input type="checkbox" id="perm-action-create" checked>
+                <span>➕ Thêm mới bản ghi (+)</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                <input type="checkbox" id="perm-action-edit">
+                <span>✏️ Chỉnh sửa bản ghi</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                <input type="checkbox" id="perm-action-delete">
+                <span>🗑️ Xóa bản ghi</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                <input type="checkbox" id="perm-action-import">
+                <span>📥 Import Excel hàng loạt</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="user-edit-notes">Ghi chú phân quyền / phân công</label>
+            <input type="text" id="user-edit-notes" class="form-control" placeholder="Ghi chú về vị trí, trách nhiệm công việc...">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" data-close-modal>Hủy bỏ</button>
+          <button type="submit" id="btn-save-user-perm" class="btn btn-primary">
+            💾 Lưu Phân Quyền
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- TOAST NOTIFICATIONS -->
   <div id="toast-container" class="toast-container"></div>
 
@@ -1249,6 +1473,7 @@
   <!-- SCRIPTS DỰ ÁN -->
   <script src="js/supabase-config.js"></script>
   <script src="js/auth.js"></script>
+  <script src="js/system.js"></script>
   <script src="js/transactions.js"></script>
   <script src="js/dashboard.js"></script>
   <script src="js/fnb-reconciliation.js"></script>

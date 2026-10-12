@@ -308,4 +308,153 @@ create trigger set_salary_bank_expenses_updated_at
 before update on public.salary_and_bank_expenses
 for each row execute function public.handle_updated_at();
 
+-- ============================================================
+-- 12. BẢNG HỒ SƠ NGƯỜI DÙNG & PHÂN QUYỀN HỆ THỐNG (USER PROFILES & PERMISSIONS)
+-- ============================================================
+
+-- Bảng lưu trữ hồ sơ người dùng, vai trò và phân quyền chi tiết
+create table if not exists public.user_profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text not null,
+  full_name text,
+  role text not null default 'staff' check (role in ('admin', 'manager', 'accountant', 'staff')),
+  
+  -- Quyền truy cập các trang (Page Access Permissions)
+  can_access_transactions boolean not null default true,        -- Sổ Thu Chi Chung
+  can_access_fnb boolean not null default true,                 -- Đối Soát Bán Hàng F&B
+  can_access_salary_bank boolean not null default false,        -- Chi Lương & Chuyển Khoản
+  can_access_system boolean not null default false,             -- Quản Lý Hệ Thống
+  
+  -- Quyền thao tác dữ liệu (Action Permissions)
+  can_create boolean not null default true,                     -- Thêm mới bản ghi
+  can_edit boolean not null default false,                      -- Chỉnh sửa bản ghi
+  can_delete boolean not null default false,                    -- Xóa bản ghi
+  can_import boolean not null default false,                    -- Nhập Excel hàng loạt
+  
+  -- Trạng thái tài khoản
+  is_active boolean not null default true,
+  notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- Index tra cứu nhanh
+create index if not exists idx_user_profiles_role on public.user_profiles(role);
+create index if not exists idx_user_profiles_email on public.user_profiles(email);
+
+-- Bật Row Level Security (RLS)
+alter table public.user_profiles enable row level security;
+
+-- Function kiểm tra xem user hiện tại có phải là Admin không (Security Definer)
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.user_profiles
+    where id = auth.uid() and role = 'admin' and is_active = true
+  );
+$$;
+
+-- Function tự động tạo user_profile khi có tài khoản mới đăng ký
+create or replace function public.handle_new_user_profile()
+returns trigger
+language plpgsql
+security definer
+as $$
+declare
+  is_first boolean;
+begin
+  -- Nếu đây là user đầu tiên trong bảng, cấp quyền Admin cao nhất
+  select not exists (select 1 from public.user_profiles) into is_first;
+  
+  insert into public.user_profiles (
+    id,
+    email,
+    full_name,
+    role,
+    can_access_transactions,
+    can_access_fnb,
+    can_access_salary_bank,
+    can_access_system,
+    can_create,
+    can_edit,
+    can_delete,
+    can_import,
+    is_active
+  ) values (
+    new.id,
+    new.email,
+    coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
+    case when is_first then 'admin' else 'staff' end,
+    true,                                            -- can_access_transactions
+    true,                                            -- can_access_fnb
+    case when is_first then true else false end,     -- can_access_salary_bank
+    case when is_first then true else false end,     -- can_access_system
+    true,                                            -- can_create
+    case when is_first then true else false end,     -- can_edit
+    case when is_first then true else false end,     -- can_delete
+    case when is_first then true else false end,     -- can_import
+    true                                             -- is_active
+  )
+  on conflict (id) do nothing;
+  
+  return new;
+end;
+$$;
+
+-- Trigger gắn vào auth.users để tự động khởi tạo profile
+drop trigger if exists on_auth_user_created_profile on auth.users;
+create trigger on_auth_user_created_profile
+after insert on auth.users
+for each row execute function public.handle_new_user_profile();
+
+-- Policies cho user_profiles
+-- 1. Xem: Người dùng xem được chính mình; Admin xem được tất cả người dùng
+drop policy if exists user_profiles_select on public.user_profiles;
+create policy user_profiles_select
+on public.user_profiles for select to authenticated
+using (
+  id = auth.uid() or public.is_admin()
+);
+
+-- 2. Thêm: Chỉ Admin được thêm mới hoặc trigger hệ thống
+drop policy if exists user_profiles_insert on public.user_profiles;
+create policy user_profiles_insert
+on public.user_profiles for insert to authenticated
+with check (
+  id = auth.uid() or public.is_admin()
+);
+
+-- 3. Sửa: Admin có thể sửa tất cả profile và phân quyền; Người dùng chỉ sửa được thông tin cá nhân (họ tên) của mình
+drop policy if exists user_profiles_update on public.user_profiles;
+create policy user_profiles_update
+on public.user_profiles for update to authenticated
+using (
+  id = auth.uid() or public.is_admin()
+)
+with check (
+  id = auth.uid() or public.is_admin()
+);
+
+-- 4. Xóa: Chỉ Admin được xóa profile
+drop policy if exists user_profiles_delete on public.user_profiles;
+create policy user_profiles_delete
+on public.user_profiles for delete to authenticated
+using (
+  public.is_admin()
+);
+
+-- Cấp quyền bảng user_profiles
+grant select, insert, update, delete on public.user_profiles to authenticated;
+
+-- Trigger cập nhật updated_at
+drop trigger if exists set_user_profiles_updated_at on public.user_profiles;
+create trigger set_user_profiles_updated_at
+before update on public.user_profiles
+for each row execute function public.handle_updated_at();
+
+
 

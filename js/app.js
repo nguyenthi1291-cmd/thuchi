@@ -16,7 +16,8 @@
     currentFnbReconciliations: [],
     editingFnbRecId: null,
     currentSalaryBankExpenses: [],
-    editingSalaryBankExpenseId: null
+    editingSalaryBankExpenseId: null,
+    allUsers: []
   };
 
   // DOM Elements
@@ -26,9 +27,11 @@
     navBtnTransactions: document.getElementById("nav-btn-transactions"),
     navBtnFnbRec: document.getElementById("nav-btn-fnb-rec"),
     navBtnSalaryBank: document.getElementById("nav-btn-salary-bank"),
+    navBtnSystem: document.getElementById("nav-btn-system"),
     viewTransactions: document.getElementById("view-transactions"),
     viewFnbRec: document.getElementById("view-fnb-reconciliation"),
     viewSalaryBank: document.getElementById("view-salary-bank"),
+    viewSystem: document.getElementById("view-system"),
 
     // Config
     configAlertBanner: document.getElementById("config-alert-banner"),
@@ -240,6 +243,44 @@
     excelErrorBox: document.getElementById("excel-error-box"),
     excelErrorText: document.getElementById("excel-error-text"),
     btnTriggerImports: document.querySelectorAll(".btn-trigger-import"),
+
+    // ================= SYSTEM & USER PERMISSIONS DOM =================
+    myProfileRoleBadge: document.getElementById("my-profile-role-badge"),
+    myProfileEmail: document.getElementById("my-profile-email"),
+    myProfileName: document.getElementById("my-profile-name"),
+    myPermissionsBadges: document.getElementById("my-permissions-badges"),
+
+    sysKpiTotalUsers: document.getElementById("sys-kpi-total-users"),
+    sysKpiAdminCount: document.getElementById("sys-kpi-admin-count"),
+    sysKpiManagerCount: document.getElementById("sys-kpi-manager-count"),
+    sysKpiActiveCount: document.getElementById("sys-kpi-active-count"),
+
+    btnRefreshUsers: document.getElementById("btn-refresh-users"),
+    sysTableLoading: document.getElementById("sys-table-loading"),
+    sysTableEmpty: document.getElementById("sys-table-empty"),
+    sysTableWrapper: document.getElementById("sys-table-wrapper"),
+    sysUsersTbody: document.getElementById("sys-users-tbody"),
+
+    modalEditUser: document.getElementById("modal-edit-user"),
+    modalEditUserTitle: document.getElementById("modal-edit-user-title"),
+    formEditUser: document.getElementById("form-edit-user"),
+    userEditId: document.getElementById("user-edit-id"),
+    userEditEmail: document.getElementById("user-edit-email"),
+    userEditName: document.getElementById("user-edit-name"),
+    userEditRole: document.getElementById("user-edit-role"),
+    userEditStatus: document.getElementById("user-edit-status"),
+    userEditNotes: document.getElementById("user-edit-notes"),
+
+    permPageTx: document.getElementById("perm-page-tx"),
+    permPageFnb: document.getElementById("perm-page-fnb"),
+    permPageSb: document.getElementById("perm-page-sb"),
+    permPageSys: document.getElementById("perm-page-sys"),
+
+    permActionCreate: document.getElementById("perm-action-create"),
+    permActionEdit: document.getElementById("perm-action-edit"),
+    permActionDelete: document.getElementById("perm-action-delete"),
+    permActionImport: document.getElementById("perm-action-import"),
+    btnSaveUserPerm: document.getElementById("btn-save-user-perm"),
 
     // Toast Container
     toastContainer: document.getElementById("toast-container")
@@ -491,10 +532,76 @@
     if (DOM.btnOpenExcelModal) DOM.btnOpenExcelModal.classList.remove("hidden");
     if (DOM.mainNavTabs) DOM.mainNavTabs.classList.remove("hidden");
     DOM.authSection.classList.add("hidden");
-    DOM.appSection.classList.remove("hidden");
+    // 0. Tải hồ sơ người dùng & phân quyền hệ thống
+    try {
+      await window.SystemService.getMyProfile();
+      applyUserPermissionsToUI();
+    } catch (e) {
+      console.warn("Lỗi kiểm tra quyền hạn:", e);
+    }
 
     // Tải dữ liệu ban đầu
     await loadInitialData();
+  }
+
+  function applyUserPermissionsToUI() {
+    const prof = window.SystemService.myProfile;
+    if (!prof) return;
+
+    // Header role badge
+    const roleInfo = window.SystemService.ROLES[prof.role] || window.SystemService.ROLES.staff;
+    if (DOM.myProfileRoleBadge) {
+      DOM.myProfileRoleBadge.textContent = roleInfo.name;
+      DOM.myProfileRoleBadge.className = `badge ${roleInfo.badge}`;
+    }
+    if (DOM.myProfileEmail) DOM.myProfileEmail.textContent = prof.email || "";
+    if (DOM.myProfileName) DOM.myProfileName.textContent = prof.full_name || prof.email.split("@")[0];
+
+    // Render permission badges on profile card
+    if (DOM.myPermissionsBadges) {
+      DOM.myPermissionsBadges.innerHTML = "";
+      const badges = [];
+      if (prof.role === "admin") {
+        badges.push('<span class="badge badge-danger">⭐ Toàn quyền hệ thống</span>');
+      } else {
+        if (prof.can_create) badges.push('<span class="badge badge-success">➕ Được thêm</span>');
+        if (prof.can_edit) badges.push('<span class="badge badge-primary">✏️ Được sửa</span>');
+        if (prof.can_delete) badges.push('<span class="badge badge-danger">🗑️ Được xóa</span>');
+        if (prof.can_import) badges.push('<span class="badge badge-office">📥 Được import</span>');
+      }
+      DOM.myPermissionsBadges.innerHTML = badges.join(" ");
+    }
+
+    // Phân quyền hiển thị Nav Tabs (Trang được phép truy cập)
+    if (DOM.navBtnTransactions) {
+      DOM.navBtnTransactions.style.display = window.SystemService.canAccess("transactions") ? "" : "none";
+    }
+    if (DOM.navBtnFnbRec) {
+      DOM.navBtnFnbRec.style.display = window.SystemService.canAccess("fnb") ? "" : "none";
+    }
+    if (DOM.navBtnSalaryBank) {
+      DOM.navBtnSalaryBank.style.display = window.SystemService.canAccess("salary_bank") ? "" : "none";
+    }
+    if (DOM.navBtnSystem) {
+      DOM.navBtnSystem.style.display = window.SystemService.canAccess("system") ? "" : "none";
+    }
+
+    // Phân quyền nút Thêm mới
+    const canCreate = window.SystemService.canCreate();
+    if (DOM.btnAddTransaction) DOM.btnAddTransaction.style.display = canCreate ? "" : "none";
+    if (DOM.btnAddFnbRec) DOM.btnAddFnbRec.style.display = canCreate ? "" : "none";
+    if (DOM.btnAddSalaryBank) DOM.btnAddSalaryBank.style.display = canCreate ? "" : "none";
+    if (DOM.btnSaveSalaryBank) DOM.btnSaveSalaryBank.style.display = canCreate ? "" : "none";
+    if (DOM.btnSaveInlineFnbRec) DOM.btnSaveInlineFnbRec.style.display = canCreate ? "" : "none";
+
+    // Phân quyền nút Import Excel
+    const canImport = window.SystemService.canImport();
+    if (DOM.btnOpenExcelModal) DOM.btnOpenExcelModal.style.display = canImport ? "" : "none";
+    if (DOM.btnTriggerImports) {
+      DOM.btnTriggerImports.forEach(btn => {
+        btn.style.display = canImport ? "" : "none";
+      });
+    }
   }
 
   function onUserSignedOut() {
@@ -979,6 +1086,11 @@
   }
 
   function openEditTransactionModal(id) {
+    if (!window.SystemService.canEdit()) {
+      showToast("Tài khoản của bạn không có quyền Chỉnh sửa dữ liệu. Vui lòng liên hệ Admin.", "warning");
+      return;
+    }
+
     const tx = AppState.currentTransactions.find(t => t.id === id);
     if (!tx) {
       showToast("Không tìm thấy thông tin giao dịch cần sửa.", "error");
@@ -1013,6 +1125,11 @@
   }
 
   function openDeleteModal(id) {
+    if (!window.SystemService.canDelete()) {
+      showToast("Tài khoản của bạn không có quyền Xóa dữ liệu. Vui lòng liên hệ Admin.", "warning");
+      return;
+    }
+
     DOM.deleteTargetId.value = id;
     openModal(DOM.modalDelete);
   }
@@ -1022,10 +1139,10 @@
     if (!DOM.navBtnTransactions || !DOM.navBtnFnbRec) return;
 
     function activateTab(activeBtn, activeView) {
-      [DOM.navBtnTransactions, DOM.navBtnFnbRec, DOM.navBtnSalaryBank].forEach(btn => {
+      [DOM.navBtnTransactions, DOM.navBtnFnbRec, DOM.navBtnSalaryBank, DOM.navBtnSystem].forEach(btn => {
         if (btn) btn.classList.remove("active");
       });
-      [DOM.viewTransactions, DOM.viewFnbRec, DOM.viewSalaryBank].forEach(view => {
+      [DOM.viewTransactions, DOM.viewFnbRec, DOM.viewSalaryBank, DOM.viewSystem].forEach(view => {
         if (view) view.classList.add("hidden");
       });
 
@@ -1046,6 +1163,13 @@
       DOM.navBtnSalaryBank.addEventListener("click", () => {
         activateTab(DOM.navBtnSalaryBank, DOM.viewSalaryBank);
         applySalaryBankFilters();
+      });
+    }
+
+    if (DOM.navBtnSystem) {
+      DOM.navBtnSystem.addEventListener("click", () => {
+        activateTab(DOM.navBtnSystem, DOM.viewSystem);
+        loadSystemUsers();
       });
     }
   }
@@ -1439,6 +1563,11 @@
     // Gắn sự kiện nút Sửa & Xóa F&B
     DOM.fnbRecTbody.querySelectorAll(".btn-edit-fnb").forEach(btn => {
       btn.addEventListener("click", () => {
+        if (!window.SystemService.canEdit()) {
+          showToast("Tài khoản của bạn không có quyền Chỉnh sửa dữ liệu. Vui lòng liên hệ Admin.", "warning");
+          return;
+        }
+
         const id = Number(btn.getAttribute("data-id"));
         const record = AppState.currentFnbReconciliations.find(r => r.id === id);
         if (record) {
@@ -1453,6 +1582,11 @@
 
     DOM.fnbRecTbody.querySelectorAll(".btn-delete-fnb").forEach(btn => {
       btn.addEventListener("click", () => {
+        if (!window.SystemService.canDelete()) {
+          showToast("Tài khoản của bạn không có quyền Xóa dữ liệu. Vui lòng liên hệ Admin.", "warning");
+          return;
+        }
+
         const id = Number(btn.getAttribute("data-id"));
         openDeleteFnbRecModal(id);
       });
@@ -1913,6 +2047,11 @@
     // Sự kiện Sửa & Xóa
     DOM.sbTbody.querySelectorAll(".btn-edit-sb").forEach(btn => {
       btn.addEventListener("click", () => {
+        if (!window.SystemService.canEdit()) {
+          showToast("Tài khoản của bạn không có quyền Chỉnh sửa dữ liệu. Vui lòng liên hệ Admin.", "warning");
+          return;
+        }
+
         const id = Number(btn.getAttribute("data-id"));
         const record = AppState.currentSalaryBankExpenses.find(x => x.id === id);
         if (record) {
@@ -1928,6 +2067,11 @@
 
     DOM.sbTbody.querySelectorAll(".btn-delete-sb").forEach(btn => {
       btn.addEventListener("click", () => {
+        if (!window.SystemService.canDelete()) {
+          showToast("Tài khoản của bạn không có quyền Xóa dữ liệu. Vui lòng liên hệ Admin.", "warning");
+          return;
+        }
+
         const id = Number(btn.getAttribute("data-id"));
         if (DOM.sbDeleteTargetId) DOM.sbDeleteTargetId.value = id;
         openModal(DOM.modalSbDelete);
@@ -2067,6 +2211,224 @@
     }
   }
 
+  // ================= SYSTEM & USER MANAGEMENT LOGIC =================
+  async function loadSystemUsers() {
+    if (!window.SystemService) return;
+
+    if (DOM.sysTableLoading) DOM.sysTableLoading.classList.remove("hidden");
+    if (DOM.sysTableEmpty) DOM.sysTableEmpty.classList.add("hidden");
+
+    try {
+      const users = await window.SystemService.getAllUsers();
+      AppState.allUsers = users;
+      updateSystemKpis(users);
+      renderSystemUsersTable(users);
+    } catch (err) {
+      console.error("Lỗi khi tải danh sách người dùng:", err);
+      showToast("Lỗi khi tải người dùng: " + (err.message || "Kiểm tra quyền RLS"), "error");
+    } finally {
+      if (DOM.sysTableLoading) DOM.sysTableLoading.classList.add("hidden");
+    }
+  }
+
+  function updateSystemKpis(users = []) {
+    const total = users.length;
+    const adminCount = users.filter(u => u.role === "admin").length;
+    const mgrCount = users.filter(u => u.role === "manager" || u.role === "accountant").length;
+    const activeCount = users.filter(u => u.is_active).length;
+
+    if (DOM.sysKpiTotalUsers) DOM.sysKpiTotalUsers.textContent = total;
+    if (DOM.sysKpiAdminCount) DOM.sysKpiAdminCount.textContent = adminCount;
+    if (DOM.sysKpiManagerCount) DOM.sysKpiManagerCount.textContent = mgrCount;
+    if (DOM.sysKpiActiveCount) DOM.sysKpiActiveCount.textContent = activeCount;
+  }
+
+  function renderSystemUsersTable(users = []) {
+    if (!DOM.sysUsersTbody) return;
+    DOM.sysUsersTbody.innerHTML = "";
+
+    if (!users || users.length === 0) {
+      if (DOM.sysTableEmpty) DOM.sysTableEmpty.classList.remove("hidden");
+      return;
+    }
+
+    if (DOM.sysTableEmpty) DOM.sysTableEmpty.classList.add("hidden");
+
+    const rolesMap = window.SystemService.ROLES || {};
+    const isAdmin = window.SystemService.isAdmin();
+
+    users.forEach(u => {
+      const tr = document.createElement("tr");
+
+      const roleInfo = rolesMap[u.role] || { name: u.role, badge: "badge-neutral" };
+      const statusBadge = u.is_active
+        ? '<span class="badge badge-matched">Hoạt động</span>'
+        : '<span class="badge badge-danger">Đã khóa</span>';
+
+      // Tạo badges cho trang được phép truy cập
+      const pageTags = [];
+      if (u.can_access_transactions) pageTags.push('<span class="badge badge-neutral" style="font-size: 0.72rem;">📑 Thu Chi</span>');
+      if (u.can_access_fnb) pageTags.push('<span class="badge badge-fnb" style="font-size: 0.72rem;">⚖️ F&B</span>');
+      if (u.can_access_salary_bank) pageTags.push('<span class="badge" style="font-size: 0.72rem; background: #ede9fe; color: #6d28d9;">💳 Lương & CK</span>');
+      if (u.can_access_system) pageTags.push('<span class="badge badge-danger" style="font-size: 0.72rem;">⚙️ Hệ thống</span>');
+
+      // Tạo badges cho thao tác
+      const actionTags = [];
+      if (u.can_create) actionTags.push('<span class="badge badge-success" style="font-size: 0.72rem;">+ Thêm</span>');
+      if (u.can_edit) actionTags.push('<span class="badge badge-primary" style="font-size: 0.72rem;">✏️ Sửa</span>');
+      if (u.can_delete) actionTags.push('<span class="badge badge-danger" style="font-size: 0.72rem;">🗑️ Xóa</span>');
+      if (u.can_import) actionTags.push('<span class="badge badge-office" style="font-size: 0.72rem;">📥 Import</span>');
+
+      const isCurrentMe = window.AuthManager.currentUser?.id === u.id;
+
+      tr.innerHTML = `
+        <td>
+          <div style="font-weight: 600; color: var(--text-main);">
+            ${escapeHtml(u.full_name || u.email.split("@")[0])}
+            ${isCurrentMe ? '<span class="badge badge-primary" style="font-size: 0.7rem; margin-left: 4px;">Bạn</span>' : ''}
+          </div>
+          <small style="color: var(--text-muted); font-family: monospace;">${escapeHtml(u.email)}</small>
+        </td>
+        <td style="text-align: center;">
+          <span class="badge ${roleInfo.badge}">${escapeHtml(roleInfo.name)}</span>
+        </td>
+        <td>
+          <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+            ${pageTags.length > 0 ? pageTags.join(" ") : '<span style="color: var(--text-muted); font-size: 0.8rem;">Không có</span>'}
+          </div>
+        </td>
+        <td>
+          <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+            ${actionTags.length > 0 ? actionTags.join(" ") : '<span style="color: var(--text-muted); font-size: 0.8rem;">Chỉ xem</span>'}
+          </div>
+        </td>
+        <td style="text-align: center;">
+          ${statusBadge}
+        </td>
+        <td style="text-align: center;">
+          <div class="action-btns" style="justify-content: center;">
+            <button class="btn btn-sm btn-outline btn-edit-user" data-id="${u.id}" title="Phân quyền & Chỉnh sửa">
+              ⚙️ Phân quyền
+            </button>
+          </div>
+        </td>
+      `;
+
+      DOM.sysUsersTbody.appendChild(tr);
+    });
+
+    // Gắn sự kiện nút mở Modal Phân Quyền
+    DOM.sysUsersTbody.querySelectorAll(".btn-edit-user").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-id");
+        const user = AppState.allUsers.find(u => u.id === id);
+        if (user) {
+          openEditUserModal(user);
+        }
+      });
+    });
+  }
+
+  function openEditUserModal(user) {
+    if (!DOM.modalEditUser) return;
+
+    if (DOM.userEditId) DOM.userEditId.value = user.id;
+    if (DOM.userEditEmail) DOM.userEditEmail.value = user.email || "";
+    if (DOM.userEditName) DOM.userEditName.value = user.full_name || "";
+    if (DOM.userEditRole) DOM.userEditRole.value = user.role || "staff";
+    if (DOM.userEditStatus) DOM.userEditStatus.value = user.is_active ? "active" : "inactive";
+    if (DOM.userEditNotes) DOM.userEditNotes.value = user.notes || "";
+
+    // Pages
+    if (DOM.permPageTx) DOM.permPageTx.checked = !!user.can_access_transactions;
+    if (DOM.permPageFnb) DOM.permPageFnb.checked = !!user.can_access_fnb;
+    if (DOM.permPageSb) DOM.permPageSb.checked = !!user.can_access_salary_bank;
+    if (DOM.permPageSys) DOM.permPageSys.checked = !!user.can_access_system;
+
+    // Actions
+    if (DOM.permActionCreate) DOM.permActionCreate.checked = !!user.can_create;
+    if (DOM.permActionEdit) DOM.permActionEdit.checked = !!user.can_edit;
+    if (DOM.permActionDelete) DOM.permActionDelete.checked = !!user.can_delete;
+    if (DOM.permActionImport) DOM.permActionImport.checked = !!user.can_import;
+
+    // Khi chọn Admin, tự động tích toàn bộ
+    if (DOM.userEditRole) {
+      DOM.userEditRole.onchange = () => {
+        if (DOM.userEditRole.value === "admin") {
+          if (DOM.permPageTx) DOM.permPageTx.checked = true;
+          if (DOM.permPageFnb) DOM.permPageFnb.checked = true;
+          if (DOM.permPageSb) DOM.permPageSb.checked = true;
+          if (DOM.permPageSys) DOM.permPageSys.checked = true;
+          if (DOM.permActionCreate) DOM.permActionCreate.checked = true;
+          if (DOM.permActionEdit) DOM.permActionEdit.checked = true;
+          if (DOM.permActionDelete) DOM.permActionDelete.checked = true;
+          if (DOM.permActionImport) DOM.permActionImport.checked = true;
+        }
+      };
+    }
+
+    if (DOM.modalEditUserTitle) {
+      DOM.modalEditUserTitle.textContent = `⚙️ Phân Quyền Cho: ${user.email}`;
+    }
+
+    openModal(DOM.modalEditUser);
+  }
+
+  function setupSystemEvents() {
+    if (DOM.btnRefreshUsers) {
+      DOM.btnRefreshUsers.addEventListener("click", () => {
+        loadSystemUsers();
+        showToast("Đã làm mới danh sách người dùng.", "info");
+      });
+    }
+
+    if (DOM.formEditUser) {
+      DOM.formEditUser.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const userId = DOM.userEditId.value;
+        if (!userId) return;
+
+        const updateData = {
+          full_name: DOM.userEditName.value.trim(),
+          role: DOM.userEditRole.value,
+          is_active: DOM.userEditStatus.value === "active",
+          can_access_transactions: DOM.permPageTx.checked,
+          can_access_fnb: DOM.permPageFnb.checked,
+          can_access_salary_bank: DOM.permPageSb.checked,
+          can_access_system: DOM.permPageSys.checked,
+          can_create: DOM.permActionCreate.checked,
+          can_edit: DOM.permActionEdit.checked,
+          can_delete: DOM.permActionDelete.checked,
+          can_import: DOM.permActionImport.checked,
+          notes: DOM.userEditNotes.value.trim()
+        };
+
+        DOM.btnSaveUserPerm.disabled = true;
+        DOM.btnSaveUserPerm.textContent = "Đang lưu phân quyền...";
+
+        try {
+          await window.SystemService.updateUserProfile(userId, updateData);
+          showToast("Đã cập nhật phân quyền người dùng thành công!", "success");
+          closeModal(DOM.modalEditUser);
+
+          // Nếu đang cập nhật chính mình thì áp dụng lại UI ngay
+          if (window.AuthManager.currentUser?.id === userId) {
+            applyUserPermissionsToUI();
+          }
+
+          await loadSystemUsers();
+        } catch (err) {
+          console.error("Lỗi cập nhật quyền:", err);
+          showToast("Không thể lưu phân quyền: " + (err.message || "Lỗi Supabase"), "error");
+        } finally {
+          DOM.btnSaveUserPerm.disabled = false;
+          DOM.btnSaveUserPerm.textContent = "💾 Lưu Phân Quyền";
+        }
+      });
+    }
+  }
+
   // ================= INIT APPLICATION =================
   function init() {
     setupConfigEvents();
@@ -2077,6 +2439,7 @@
     setupFnbReconciliationEvents();
     setupSalaryBankEvents();
     setupExcelImportEvents();
+    setupSystemEvents();
 
     // Khởi tạo ngày hôm nay cho modals và form nhập liệu
     DOM.txDate.value = getTodayString();
