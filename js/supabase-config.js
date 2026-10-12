@@ -7,11 +7,8 @@ const SUPABASE_CONFIG = {
   // Project URL từ Supabase Dashboard
   url: "https://wszzjfkkswuilksznlme.supabase.co",
 
-  // Supabase Anon (Publishable) Key:eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzenpqZmtrc3d1aWxrc3pubG1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3NTM0MTIsImV4cCI6MjEwNzMyOTQxMn0.roxEJLSGjEJJp3JzaX7uX3mOi6lbiwJ7q-qLUzpIJfg
-  // Bạn có thể dán trực tiếp anon key vào giữa hai dấu nháy kép bên dưới,
-  // HOẶC nhập trực tiếp qua giao diện web (sẽ được lưu an toàn trong trình duyệt).
-  // Lấy key tại: Supabase Dashboard -> Project Settings -> API -> Project API keys -> anon public
-  anonKey: ""
+  // Supabase Anon (Publishable) Key
+  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzenpqZmtrc3d1aWxrc3pubG1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3NTM0MTIsImV4cCI6MjEwNzMyOTQxMn0.roxEJLSGjEJJp3JzaX7uX3mOi6lbiwJ7q-qLUzpIJfg"
 };
 
 // Khởi tạo Supabase Client
