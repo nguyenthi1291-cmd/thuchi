@@ -1,6 +1,6 @@
 // ============================================================
 // EXCEL IMPORT SERVICE & TEMPLATES
-// Hỗ trợ tải file Excel mẫu và nhập dữ liệu hàng loạt từ file Excel
+// Hỗ trợ tải file Excel mẫu (chuẩn droplist) và nhập dữ liệu hàng loạt từ file Excel
 // Sử dụng SheetJS (xlsx.full.min.js)
 // ============================================================
 
@@ -62,18 +62,362 @@
       }
     },
 
-    // 2. Tải file mẫu trực tiếp về máy
+    // 2. TẠO VÀ TẢI FILE EXCEL MẪU ĐỘNG CHUẨN DROPLIST (DATA VALIDATION)
     downloadTemplate(type) {
-      const tmpl = this.TEMPLATES[type];
-      if (!tmpl) {
-        throw new Error("Không tìm thấy mẫu file yêu cầu: " + type);
+      if (!window.XLSX) {
+        // Fallback tải file tĩnh nếu SheetJS chưa sẵn sàng
+        const tmpl = this.TEMPLATES[type];
+        if (tmpl) {
+          const link = document.createElement("a");
+          link.href = tmpl.path;
+          link.download = tmpl.filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+        return;
       }
-      const link = document.createElement("a");
-      link.href = tmpl.path;
-      link.download = tmpl.filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+
+      if (type === "salary_bank") {
+        this.generateSalaryBankTemplate();
+      } else if (type === "transactions") {
+        this.generateTransactionsTemplate();
+      } else if (type === "fnb_reconciliation") {
+        this.generateFnbTemplate();
+      } else {
+        const tmpl = this.TEMPLATES[type];
+        if (tmpl) {
+          const link = document.createElement("a");
+          link.href = tmpl.path;
+          link.download = tmpl.filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      }
+    },
+
+    // Mẫu 1: Chi Lương & Chuyển Khoản (kèm droplist và sheet tra cứu)
+    generateSalaryBankTemplate() {
+      const wb = XLSX.utils.book_new();
+
+      // Dữ liệu mẫu trang tính chính
+      const dataRows = [
+        [
+          "Ngay_Chi",
+          "Ma_Mang_Hoat_Dong",
+          "Phan_Loai_Chi",
+          "Khoan_Muc_Chi",
+          "Nguoi_Nhan",
+          "So_Tien",
+          "Ngan_Hang_Nhan",
+          "So_Tai_Khoan_Nhan",
+          "Ma_UNC_Giao_Dich",
+          "Tai_Khoan_Trich_Chi",
+          "Dien_Giai",
+          "Ghi_Chu"
+        ],
+        [
+          "2026-10-12",
+          "FNB",
+          "Luong",
+          "Lương cứng / Lương tháng",
+          "Nguyễn Văn Tuấn (Bếp trưởng)",
+          18000000,
+          "MB Bank",
+          "0988776655",
+          "FT26101201",
+          "MB Bank",
+          "Chi lương bếp trưởng tháng 10",
+          "Đã duyệt chi"
+        ],
+        [
+          "2026-10-12",
+          "FNB",
+          "Chuyen_Khoan",
+          "Thanh toán NCC / Tiền hàng",
+          "Công ty CP Thực Phẩm Xanh",
+          12500000,
+          "Vietcombank",
+          "0011004455667",
+          "FT26101202",
+          "MB Bank",
+          "Thanh toán tiền thịt bò cá hồi",
+          "Hóa đơn VAT số 0029"
+        ],
+        [
+          "2026-10-12",
+          "SON_MAI",
+          "Luong",
+          "Lương ca / Công nhật / Part-time",
+          "Trần Thị Mai (Nghệ nhân phụ)",
+          6500000,
+          "Techcombank",
+          "19033445566",
+          "FT26101203",
+          "MB Bank",
+          "Chi lương công nhật tạo phôi sơn mài",
+          "22 công"
+        ],
+        [
+          "2026-10-12",
+          "SON_MAI",
+          "Chuyen_Khoan",
+          "Chi phí vận hành & Dụng cụ",
+          "Xưởng Mộc Bình An",
+          4800000,
+          "MB Bank",
+          "0345987123",
+          "FT26101204",
+          "MB Bank",
+          "Mua vóc mộc hộp trang sức và khay trà",
+          "Ủy nhiệm chi số 12"
+        ],
+        [
+          "2026-10-12",
+          "VAN_PHONG",
+          "Chuyen_Khoan",
+          "Thuê mặt bằng / Điện nước / Net",
+          "BQL Tòa Nhà Vạn Phúc",
+          15000000,
+          "BIDV",
+          "2151000123456",
+          "FT26101205",
+          "MB Bank",
+          "Tiền thuê mặt bằng văn phòng tháng 10",
+          "Có hợp đồng thuê"
+        ]
+      ];
+
+      const ws = XLSX.utils.aoa_to_sheet(dataRows);
+
+      // Cài đặt độ rộng cột
+      ws["!cols"] = [
+        { wch: 14 }, // Ngay_Chi
+        { wch: 20 }, // Ma_Mang_Hoat_Dong
+        { wch: 16 }, // Phan_Loai_Chi
+        { wch: 32 }, // Khoan_Muc_Chi
+        { wch: 28 }, // Nguoi_Nhan
+        { wch: 16 }, // So_Tien
+        { wch: 18 }, // Ngan_Hang_Nhan
+        { wch: 20 }, // So_Tai_Khoan_Nhan
+        { wch: 18 }, // Ma_UNC_Giao_Dich
+        { wch: 20 }, // Tai_Khoan_Trich_Chi
+        { wch: 40 }, // Dien_Giai
+        { wch: 24 }  // Ghi_Chu
+      ];
+
+      // Gắn Data Validation (Droplist) trực tiếp vào các cột Excel
+      const catList = [
+        "Lương cứng / Lương tháng",
+        "Lương ca / Công nhật / Part-time",
+        "Tạm ứng lương",
+        "Thưởng & Phụ cấp",
+        "Thanh toán NCC / Tiền hàng",
+        "Thuê mặt bằng / Điện nước / Net",
+        "Chi phí vận hành & Dụng cụ",
+        "Thuế, phí & Dịch vụ ngoài",
+        "Chi chuyển khoản khác"
+      ].join(",");
+
+      ws["!dataValidation"] = [
+        // Cột B (Mã mảng): SON_MAI, FNB, VAN_PHONG
+        {
+          sqref: "B2:B500",
+          type: "list",
+          operator: "equal",
+          formulae: ['"SON_MAI,FNB,VAN_PHONG"'],
+          showDropDown: true,
+          showErrorMessage: true,
+          errorTitle: "Mã mảng không đúng",
+          error: "Vui lòng chọn 1 trong 3 mảng: SON_MAI, FNB, VAN_PHONG"
+        },
+        // Cột C (Phân loại): Luong, Chuyen_Khoan
+        {
+          sqref: "C2:C500",
+          type: "list",
+          operator: "equal",
+          formulae: ['"Luong,Chuyen_Khoan"'],
+          showDropDown: true,
+          showErrorMessage: true,
+          errorTitle: "Phân loại không đúng",
+          error: "Vui lòng chọn: Luong hoặc Chuyen_Khoan"
+        },
+        // Cột D (Khoản mục chi): Droplist các khoản mục tiếng Việt chuẩn
+        {
+          sqref: "D2:D500",
+          type: "list",
+          operator: "equal",
+          formulae: [`"${catList}"`],
+          showDropDown: true,
+          showErrorMessage: true,
+          errorTitle: "Khoản mục chi không đúng",
+          error: "Vui lòng chọn khoản mục có sẵn trong danh sách"
+        }
+      ];
+
+      XLSX.utils.book_append_sheet(wb, ws, "Chi_Luong_Va_CK");
+
+      // Sheet 2: Danh Mục Tra Cứu (Reference Guide)
+      const guideRows = [
+        ["HƯỚNG DẪN ĐIỀN DỮ LIỆU CHI LƯƠNG & CHUYỂN KHOẢN"],
+        [""],
+        ["1. DANH SÁCH MÃ MẢNG HOẠT ĐỘNG (Cột B):"],
+        ["Mã Mảng", "Tên Mảng Kinh Doanh", "Ghi Chú"],
+        ["SON_MAI", "Sơn Mài", "Áp dụng cho mọi chi phí thuộc mảng Sơn Mài"],
+        ["FNB", "F&B (Nhà hàng / Bar / Cafe)", "Áp dụng cho mảng F&B"],
+        ["VAN_PHONG", "Văn phòng / Hành chính", "Chi phí chung khối văn phòng"],
+        [""],
+        ["2. DANH SÁCH KHOẢN MỤC CHI PHÍ (Cột D - Chọn từ Droplist):"],
+        ["Tên Khoản Mục Hiển Thị", "Mã Hệ Thống (Tự động nhận diện)", "Nhóm Phân Loại"],
+        ["Lương cứng / Lương tháng", "salary_fixed", "Lương nhân sự"],
+        ["Lương ca / Công nhật / Part-time", "salary_shift", "Lương nhân sự"],
+        ["Tạm ứng lương", "salary_advance", "Lương nhân sự"],
+        ["Thưởng & Phụ cấp", "salary_bonus", "Lương nhân sự"],
+        ["Thanh toán NCC / Tiền hàng", "supplier_payment", "Chuyển khoản"],
+        ["Thuê mặt bằng / Điện nước / Net", "rent_utility", "Chuyển khoản"],
+        ["Chi phí vận hành & Dụng cụ", "operation_cost", "Chuyển khoản"],
+        ["Thuế, phí & Dịch vụ ngoài", "tax_fee", "Chuyển khoản"],
+        ["Chi chuyển khoản khác", "other_expense", "Chuyển khoản"]
+      ];
+      const wsGuide = XLSX.utils.aoa_to_sheet(guideRows);
+      wsGuide["!cols"] = [{ wch: 35 }, { wch: 35 }, { wch: 35 }];
+      XLSX.utils.book_append_sheet(wb, wsGuide, "Huong_Dan_Khoan_Muc");
+
+      XLSX.writeFile(wb, "mau_chi_luong_chuyen_khoan.xlsx");
+    },
+
+    // Mẫu 2: Sổ Thu Chi Chung
+    generateTransactionsTemplate() {
+      const wb = XLSX.utils.book_new();
+
+      const dataRows = [
+        [
+          "Ngay_Giao_Dich",
+          "Ma_Mang_Hoat_Dong",
+          "Loai_Giao_Dich",
+          "Danh_Muc",
+          "So_Tien",
+          "Hinh_Thuc_Thanh_Toan",
+          "Dien_Giai",
+          "Ma_Chung_Tu"
+        ],
+        [
+          "2026-10-12",
+          "SON_MAI",
+          "Thu",
+          "Doanh thu bán tranh sơn mài",
+          15000000,
+          "Chuyen_Khoan",
+          "Khách chuyển khoản thanh toán tranh hoa sen",
+          "HD-SM-001"
+        ],
+        [
+          "2026-10-12",
+          "FNB",
+          "Chi",
+          "Mua nguyên vật liệu pha chế",
+          2500000,
+          "Tien_Mat",
+          "Tiền mua hoa quả tươi và sữa",
+          "PC-FNB-082"
+        ],
+        [
+          "2026-10-12",
+          "VAN_PHONG",
+          "Chi",
+          "Văn phòng phẩm & In ấn",
+          650000,
+          "Chuyen_Khoan",
+          "Mua giấy in A4 và mực máy in",
+          "UNC-VP-014"
+        ]
+      ];
+
+      const ws = XLSX.utils.aoa_to_sheet(dataRows);
+      ws["!cols"] = [
+        { wch: 14 },
+        { wch: 20 },
+        { wch: 16 },
+        { wch: 30 },
+        { wch: 16 },
+        { wch: 22 },
+        { wch: 45 },
+        { wch: 18 }
+      ];
+
+      // Droplist mảng, loại giao dịch, hình thức thanh toán
+      ws["!dataValidation"] = [
+        {
+          sqref: "B2:B500",
+          type: "list",
+          operator: "equal",
+          formulae: ['"SON_MAI,FNB,VAN_PHONG"'],
+          showDropDown: true
+        },
+        {
+          sqref: "C2:C500",
+          type: "list",
+          operator: "equal",
+          formulae: ['"Thu,Chi"'],
+          showDropDown: true
+        },
+        {
+          sqref: "F2:F500",
+          type: "list",
+          operator: "equal",
+          formulae: ['"Chuyen_Khoan,Tien_Mat,Card,Other"'],
+          showDropDown: true
+        }
+      ];
+
+      XLSX.utils.book_append_sheet(wb, ws, "So_Thu_Chi");
+      XLSX.writeFile(wb, "mau_so_thu_chi_chung.xlsx");
+    },
+
+    // Mẫu 3: Đối Soát Bán Hàng F&B
+    generateFnbTemplate() {
+      const wb = XLSX.utils.book_new();
+
+      const dataRows = [
+        [
+          "Ngay_Doi_Soat",
+          "Doanh_Thu_KiotViet",
+          "Tien_Mat_Thuc_Thu",
+          "Chuyen_Khoan_MB",
+          "Ly_Do_Chenh_Lech",
+          "Ghi_Chu"
+        ],
+        [
+          "2026-10-10",
+          14500000,
+          4500000,
+          10000000,
+          "",
+          "Số liệu khớp 100%"
+        ],
+        [
+          "2026-10-11",
+          18200000,
+          5000000,
+          13150000,
+          "Khách bàn 4 chuyển khoản sau 24h",
+          "Lệch thiếu 50.000đ"
+        ]
+      ];
+
+      const ws = XLSX.utils.aoa_to_sheet(dataRows);
+      ws["!cols"] = [
+        { wch: 14 },
+        { wch: 20 },
+        { wch: 20 },
+        { wch: 20 },
+        { wch: 35 },
+        { wch: 25 }
+      ];
+
+      XLSX.utils.book_append_sheet(wb, ws, "Doi_Soat_FNB");
+      XLSX.writeFile(wb, "mau_doi_soat_fnb.xlsx");
     },
 
     // 3. Đọc dữ liệu file Excel (sử dụng SheetJS)
@@ -125,7 +469,74 @@
       return s;
     },
 
-    // 5. IMPORT VÀO SỔ THU CHI CHUNG
+    // 5. Chuẩn hóa chuỗi tiếng Việt để so sánh mờ (bỏ dấu, khoảng trắng)
+    normalizeString(str) {
+      if (!str) return "";
+      return String(str)
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/g, "");
+    },
+
+    // 6. Ánh xạ Khoản mục chi phí sang mã hợp lệ của CSDL Supabase
+    mapSalaryExpenseCategory(rawCategory) {
+      if (!rawCategory) return "other_expense";
+      const clean = String(rawCategory).trim();
+      const norm = this.normalizeString(clean);
+
+      // Nếu đã đúng định dạng mã CSDL
+      const validDbKeys = [
+        "salary_fixed",
+        "salary_shift",
+        "salary_advance",
+        "salary_bonus",
+        "supplier_payment",
+        "rent_utility",
+        "operation_cost",
+        "tax_fee",
+        "other_expense"
+      ];
+      if (validDbKeys.includes(clean)) return clean;
+
+      // 1. Lương cứng
+      if (norm.includes("luongcung") || norm.includes("luongthang") || norm.includes("cung") || norm.includes("fixed")) {
+        return "salary_fixed";
+      }
+      // 2. Lương ca / công nhật / part-time
+      if (norm.includes("luongca") || norm.includes("congnhat") || norm.includes("parttime") || norm.includes("shift") || norm.includes("theoca")) {
+        return "salary_shift";
+      }
+      // 3. Tạm ứng
+      if (norm.includes("tamung") || norm.includes("ungluong") || norm.includes("advance")) {
+        return "salary_advance";
+      }
+      // 4. Thưởng & phụ cấp
+      if (norm.includes("thuong") || norm.includes("phucap") || norm.includes("bonus")) {
+        return "salary_bonus";
+      }
+      // 5. Thanh toán nhà cung cấp / Tiền hàng
+      if (norm.includes("ncc") || norm.includes("tienhang") || norm.includes("nhacungcap") || norm.includes("supplier") || norm.includes("vatlieu") || norm.includes("nguyenvatlieu")) {
+        return "supplier_payment";
+      }
+      // 6. Thuê mặt bằng / điện nước / mạng
+      if (norm.includes("matbang") || norm.includes("thue") || norm.includes("diennuoc") || norm.includes("rent") || norm.includes("internet") || norm.includes("wifi")) {
+        return "rent_utility";
+      }
+      // 7. Chi phí vận hành & dụng cụ
+      if (norm.includes("vanhanh") || norm.includes("dungcu") || norm.includes("operation") || norm.includes("thietbi") || norm.includes("suachua")) {
+        return "operation_cost";
+      }
+      // 8. Thuế & phí dịch vụ
+      if (norm.includes("thue") || norm.includes("phi") || norm.includes("tax") || norm.includes("dichvu")) {
+        return "tax_fee";
+      }
+
+      // Mặc định an toàn
+      return "other_expense";
+    },
+
+    // 7. IMPORT VÀO SỔ THU CHI CHUNG
     async importTransactions(rows, businessUnits, categories) {
       const client = window.SupabaseConfig.getClient();
       if (!client) throw new Error("Chưa kết nối Supabase.");
@@ -134,11 +545,13 @@
       businessUnits.forEach(u => {
         unitMap[u.code.toUpperCase()] = u.id;
         unitMap[u.name.toLowerCase()] = u.id;
+        unitMap[this.normalizeString(u.name)] = u.id;
       });
 
       const catMap = {};
       categories.forEach(c => {
         catMap[c.name.toLowerCase().trim()] = c.id;
+        catMap[this.normalizeString(c.name)] = c.id;
       });
 
       const validPayloads = [];
@@ -146,9 +559,8 @@
 
       for (let i = 0; i < rows.length; i++) {
         const r = rows[i];
-        const line = i + 2; // Dòng 1 là header
+        const line = i + 2;
 
-        // Tìm trường ngày
         const rawDate = r["Ngay_Giao_Dich"] || r["Ngày giao dịch"] || r["Ngay"] || r["Ngày"];
         const txDate = this.formatDateValue(rawDate);
         if (!txDate) {
@@ -156,15 +568,13 @@
           continue;
         }
 
-        // Tìm mảng hoạt động
         const rawUnit = (r["Ma_Mang_Hoat_Dong"] || r["Mã mảng"] || r["Mảng"] || r["Mang"] || "").toString().trim();
-        const unitId = unitMap[rawUnit.toUpperCase()] || unitMap[rawUnit.toLowerCase()];
+        const unitId = unitMap[rawUnit.toUpperCase()] || unitMap[rawUnit.toLowerCase()] || unitMap[this.normalizeString(rawUnit)];
         if (!unitId) {
           errors.push(`Dòng ${line}: Mã mảng '${rawUnit}' không hợp lệ (hợp lệ: SON_MAI, FNB, VAN_PHONG).`);
           continue;
         }
 
-        // Tìm loại giao dịch (Thu / Chi)
         const rawType = (r["Loai_Giao_Dich"] || r["Loại"] || r["Type"] || "").toString().trim().toLowerCase();
         let txType = "expense";
         if (rawType.includes("thu") || rawType === "income") {
@@ -173,7 +583,6 @@
           txType = "expense";
         }
 
-        // Số tiền
         const rawAmount = r["So_Tien"] || r["Số tiền"] || r["Amount"];
         const amount = Number(String(rawAmount).replace(/[^0-9.-]+/g, "")) || 0;
         if (amount <= 0) {
@@ -181,11 +590,9 @@
           continue;
         }
 
-        // Danh mục
         const rawCat = (r["Danh_Muc"] || r["Danh mục"] || "").toString().trim().toLowerCase();
-        const catId = catMap[rawCat] || null;
+        const catId = catMap[rawCat] || catMap[this.normalizeString(rawCat)] || null;
 
-        // Hình thức thanh toán
         const rawPay = (r["Hinh_Thuc_Thanh_Toan"] || r["Hình thức thanh toán"] || "Chuyen_Khoan").toString().toLowerCase();
         let paymentMethod = "bank_transfer";
         if (rawPay.includes("tien_mat") || rawPay.includes("tiền mặt") || rawPay === "cash") {
@@ -213,7 +620,6 @@
         throw new Error("Không có dòng dữ liệu hợp lệ nào để import.\n" + errors.slice(0, 5).join("\n"));
       }
 
-      // Ghi hàng loạt vào Supabase
       const { data, error } = await client
         .from("transactions")
         .insert(validPayloads)
@@ -228,7 +634,7 @@
       };
     },
 
-    // 6. IMPORT VÀO ĐỐI SOÁT FNB
+    // 8. IMPORT VÀO ĐỐI SOÁT FNB
     async importFnbReconciliations(rows) {
       const client = window.SupabaseConfig.getClient();
       if (!client) throw new Error("Chưa kết nối Supabase.");
@@ -274,10 +680,9 @@
         throw new Error("Không có dòng đối soát hợp lệ nào để import.\n" + errors.slice(0, 5).join("\n"));
       }
 
-      // Upsert theo reconciliation_date
       const { data, error } = await client
         .from("fnb_sales_reconciliations")
-        .upsert(validPayloads, { onConflict: "reconciliation_date" })
+        .upsert(validPayloads, { onConflict: "reconciliation_date,created_by" })
         .select("id");
 
       if (error) throw error;
@@ -289,7 +694,7 @@
       };
     },
 
-    // 7. IMPORT VÀO SỔ CHI LƯƠNG & CHUYỂN KHOẢN
+    // 9. IMPORT VÀO SỔ CHI LƯƠNG & CHUYỂN KHOẢN (ĐÃ FIX ÁNH XẠ DROPLIST)
     async importSalaryBankExpenses(rows, businessUnits) {
       const client = window.SupabaseConfig.getClient();
       if (!client) throw new Error("Chưa kết nối Supabase.");
@@ -298,6 +703,7 @@
       businessUnits.forEach(u => {
         unitMap[u.code.toUpperCase()] = u.id;
         unitMap[u.name.toLowerCase()] = u.id;
+        unitMap[this.normalizeString(u.name)] = u.id;
       });
 
       const validPayloads = [];
@@ -315,7 +721,7 @@
         }
 
         const rawUnit = (r["Ma_Mang_Hoat_Dong"] || r["Mã mảng"] || r["Mảng"] || "").toString().trim();
-        const unitId = unitMap[rawUnit.toUpperCase()] || unitMap[rawUnit.toLowerCase()];
+        const unitId = unitMap[rawUnit.toUpperCase()] || unitMap[rawUnit.toLowerCase()] || unitMap[this.normalizeString(rawUnit)];
         if (!unitId) {
           errors.push(`Dòng ${line}: Mã mảng '${rawUnit}' không hợp lệ (hợp lệ: SON_MAI, FNB, VAN_PHONG).`);
           continue;
@@ -337,7 +743,10 @@
           continue;
         }
 
-        const cat = (r["Khoan_Muc_Chi"] || r["Khoản mục"] || "other_expense").toString().trim();
+        // Tự động map từ nhãn tiếng Việt / droplist về mã hợp lệ check constraint của CSDL
+        const rawCat = (r["Khoan_Muc_Chi"] || r["Khoản mục"] || "other_expense").toString().trim();
+        const catKey = this.mapSalaryExpenseCategory(rawCat);
+
         const bankName = (r["Ngan_Hang_Nhan"] || r["Ngân hàng nhận"] || "").toString().trim() || null;
         const bankAcc = (r["So_Tai_Khoan_Nhan"] || r["Số tài khoản"] || "").toString().trim() || null;
         const refNo = (r["Ma_UNC_Giao_Dich"] || r["Mã UNC"] || "").toString().trim() || null;
@@ -349,7 +758,7 @@
           expense_date: expDate,
           business_unit_id: unitId,
           expense_type: expType,
-          expense_category: cat,
+          expense_category: catKey,
           recipient_name: recipient,
           recipient_bank: bankName,
           recipient_account: bankAcc,

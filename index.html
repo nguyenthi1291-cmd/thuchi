@@ -43,6 +43,9 @@
         <button id="nav-btn-salary-bank" class="nav-tab-btn" type="button">
           💳 Chi Lương & Chuyển Khoản
         </button>
+        <button id="nav-btn-report" class="nav-tab-btn" type="button">
+          📊 Báo Cáo Tổng Quan
+        </button>
         <button id="nav-btn-system" class="nav-tab-btn" type="button">
           ⚙️ Quản Lý Hệ Thống
         </button>
@@ -891,6 +894,321 @@
       </div>
       <!-- HẾT VIEW 3: CHI PHÍ LƯƠNG & CHUYỂN KHOẢN -->
 
+      <!-- ================= VIEW 5: BÁO CÁO THU - CHI TỔNG QUAN TOÀN HỆ THỐNG ================= -->
+      <div id="view-report" class="app-view hidden">
+
+        <!-- TIÊU ĐỀ & THANH CÔNG CỤ XUẤT BÁO CÁO -->
+        <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem;">
+              <span>📊 Báo Cáo Thu - Chi Tổng Quan Hợp Nhất</span>
+              <span class="badge badge-primary">Tất Cả Nguồn Dữ Liệu</span>
+            </h2>
+            <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 4px;">
+              Hợp nhất dữ liệu tài chính từ <strong>Sổ Thu Chi Chung</strong>, <strong>Đối Soát Bán Hàng F&B</strong> và <strong>Chi Lương & Chuyển Khoản</strong>.
+            </p>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button id="btn-export-report-excel" class="btn btn-outline btn-sm" title="Xuất báo cáo tổng hợp ra file Excel nhiều sheet">
+              📥 Xuất File Excel
+            </button>
+            <button id="btn-print-report" class="btn btn-outline btn-sm" title="In hoặc lưu file PDF bản báo cáo này">
+              🖨️ In Báo Cáo
+            </button>
+            <button id="btn-refresh-report" class="btn btn-primary btn-sm" title="Làm mới và tính toán lại báo cáo">
+              🔄 Cập Nhật Số Liệu
+            </button>
+          </div>
+        </div>
+
+        <!-- BỘ LỌC THỜI GIAN BÁO CÁO -->
+        <div class="filter-panel" style="margin-bottom: 1.5rem;">
+          <div class="filter-header">
+            <div class="filter-title">
+              <span>📅 Khoảng thời gian phân tích</span>
+            </div>
+            <div class="date-presets">
+              <button type="button" class="report-preset-btn preset-btn" data-preset="today">Hôm nay</button>
+              <button type="button" class="report-preset-btn preset-btn" data-preset="month">Tháng này</button>
+              <button type="button" class="report-preset-btn preset-btn" data-preset="quarter">Quý này</button>
+              <button type="button" class="report-preset-btn preset-btn" data-preset="year">Năm nay</button>
+              <button type="button" class="report-preset-btn preset-btn active" data-preset="all">Toàn thời gian</button>
+            </div>
+          </div>
+          <div class="filter-controls-grid" style="grid-template-columns: 1fr 1fr auto;">
+            <div class="filter-group">
+              <label for="report-filter-start-date">Từ ngày</label>
+              <input type="date" id="report-filter-start-date" class="form-control">
+            </div>
+            <div class="filter-group">
+              <label for="report-filter-end-date">Đến ngày</label>
+              <input type="date" id="report-filter-end-date" class="form-control">
+            </div>
+            <div class="filter-group" style="align-self: flex-end;">
+              <button id="btn-report-apply-filter" class="btn btn-primary" style="height: 38px; width: 100%;">
+                Áp dụng
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- LOADING STATE -->
+        <div id="report-loading" class="state-container hidden">
+          <div class="spinner"></div>
+          <div class="state-title">Đang hợp nhất và tính toán dữ liệu từ các trang...</div>
+        </div>
+
+        <!-- NỘI DUNG BÁO CÁO CHÍNH -->
+        <div id="report-content-wrapper">
+
+          <!-- 1. BẢNG KPI TỔNG HỢP TOÀN HỆ THỐNG -->
+          <div class="dashboard-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 1.5rem;">
+            <!-- Tổng Thu -->
+            <div class="kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-title">Tổng Thu Hợp Nhất</span>
+                <span class="kpi-icon icon-income">▲</span>
+              </div>
+              <div id="rep-grand-income" class="kpi-value text-positive">0 ₫</div>
+              <div class="kpi-footer">Từ Sổ Thu Chi Chung</div>
+            </div>
+
+            <!-- Tổng Chi -->
+            <div class="kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-title">Tổng Chi Hợp Nhất</span>
+                <span class="kpi-icon icon-expense">▼</span>
+              </div>
+              <div id="rep-grand-expense" class="kpi-value text-negative">0 ₫</div>
+              <div id="rep-grand-expense-sub" class="kpi-footer">Sổ chung + Chi lương & CK</div>
+            </div>
+
+            <!-- Chênh Lệch -->
+            <div class="kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-title">Chênh Lệch Thu - Chi</span>
+                <span id="rep-net-badge" class="badge badge-neutral">Cân bằng</span>
+              </div>
+              <div id="rep-grand-net" class="kpi-value">0 ₫</div>
+              <div class="kpi-footer">Tổng thu trừ Tổng chi hợp nhất</div>
+            </div>
+
+            <!-- Đối Soát F&B -->
+            <div class="kpi-card" style="border-top: 3px solid #c2410c;">
+              <div class="kpi-header">
+                <span class="kpi-title">Doanh Thu F&B Thực Thu</span>
+                <span class="badge badge-fnb">F&B</span>
+              </div>
+              <div id="rep-fnb-collected" class="kpi-value" style="color: #c2410c;">0 ₫</div>
+              <div id="rep-fnb-diff-status" class="kpi-footer">Tiền mặt + Chuyển khoản MB</div>
+            </div>
+          </div>
+
+          <!-- 2. THỐNG KÊ CHI TIẾT THEO 3 MẢNG KINH DOANH -->
+          <div style="margin-bottom: 1.5rem;">
+            <div style="margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+              <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-main);">
+                🏢 Hiệu Quả Thu - Chi Từng Mảng Hoạt Động (Hợp Nhất)
+              </h3>
+              <span style="font-size: 0.82rem; color: var(--text-muted);">Đã gộp chi phí lương & chuyển khoản vào từng mảng tương ứng</span>
+            </div>
+
+            <div class="units-overview-grid">
+              <!-- Mảng Sơn Mài -->
+              <div class="unit-card unit-sonmai">
+                <div class="unit-card-title">
+                  <span>🎨 Sơn Mài</span>
+                  <span id="rep-unit-sonmai-badge" class="badge badge-sonmai">0 GD</span>
+                </div>
+                <div class="unit-stats-row">
+                  <span>Tổng thu:</span>
+                  <span id="rep-unit-sonmai-income" class="text-positive font-bold">0 ₫</span>
+                </div>
+                <div class="unit-stats-row">
+                  <span>Chi sổ chung:</span>
+                  <span id="rep-unit-sonmai-tx-expense" class="text-negative">0 ₫</span>
+                </div>
+                <div class="unit-stats-row">
+                  <span>Chi lương & CK:</span>
+                  <span id="rep-unit-sonmai-sb-expense" class="text-negative font-bold">0 ₫</span>
+                </div>
+                <div class="unit-stats-row" style="border-top: 1px dashed var(--unit-sonmai-border); padding-top: 4px; margin-top: 4px;">
+                  <span>Tổng chi hợp nhất:</span>
+                  <span id="rep-unit-sonmai-total-expense" class="text-negative font-bold">0 ₫</span>
+                </div>
+                <div class="unit-stats-row net-row">
+                  <span>Chênh lệch:</span>
+                  <span id="rep-unit-sonmai-net">0 ₫</span>
+                </div>
+              </div>
+
+              <!-- Mảng F&B -->
+              <div class="unit-card unit-fnb">
+                <div class="unit-card-title">
+                  <span>☕ F&B (Nhà hàng / Bar)</span>
+                  <span id="rep-unit-fnb-badge" class="badge badge-fnb">0 GD</span>
+                </div>
+                <div class="unit-stats-row">
+                  <span>Tổng thu:</span>
+                  <span id="rep-unit-fnb-income" class="text-positive font-bold">0 ₫</span>
+                </div>
+                <div class="unit-stats-row">
+                  <span>Chi sổ chung:</span>
+                  <span id="rep-unit-fnb-tx-expense" class="text-negative">0 ₫</span>
+                </div>
+                <div class="unit-stats-row">
+                  <span>Chi lương & CK:</span>
+                  <span id="rep-unit-fnb-sb-expense" class="text-negative font-bold">0 ₫</span>
+                </div>
+                <div class="unit-stats-row" style="border-top: 1px dashed var(--unit-fnb-border); padding-top: 4px; margin-top: 4px;">
+                  <span>Tổng chi hợp nhất:</span>
+                  <span id="rep-unit-fnb-total-expense" class="text-negative font-bold">0 ₫</span>
+                </div>
+                <div class="unit-stats-row net-row">
+                  <span>Chênh lệch:</span>
+                  <span id="rep-unit-fnb-net">0 ₫</span>
+                </div>
+              </div>
+
+              <!-- Mảng Văn Phòng -->
+              <div class="unit-card unit-vanphong">
+                <div class="unit-card-title">
+                  <span>🏢 Văn phòng / Hành chính</span>
+                  <span id="rep-unit-vp-badge" class="badge badge-office">0 GD</span>
+                </div>
+                <div class="unit-stats-row">
+                  <span>Tổng thu:</span>
+                  <span id="rep-unit-vp-income" class="text-positive font-bold">0 ₫</span>
+                </div>
+                <div class="unit-stats-row">
+                  <span>Chi sổ chung:</span>
+                  <span id="rep-unit-vp-tx-expense" class="text-negative">0 ₫</span>
+                </div>
+                <div class="unit-stats-row">
+                  <span>Chi lương & CK:</span>
+                  <span id="rep-unit-vp-sb-expense" class="text-negative font-bold">0 ₫</span>
+                </div>
+                <div class="unit-stats-row" style="border-top: 1px dashed var(--unit-office-border); padding-top: 4px; margin-top: 4px;">
+                  <span>Tổng chi hợp nhất:</span>
+                  <span id="rep-unit-vp-total-expense" class="text-negative font-bold">0 ₫</span>
+                </div>
+                <div class="unit-stats-row net-row">
+                  <span>Chênh lệch:</span>
+                  <span id="rep-unit-vp-net">0 ₫</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. HAI BẢNG CHI TIẾT: CƠ CẤU NGUỒN DỮ LIỆU & CHI PHÍ LƯƠNG/CK -->
+          <div class="two-col-grid" style="margin-bottom: 1.5rem;">
+            <!-- CƠ CẤU CHI THEO NGUỒN GIAO DỊCH -->
+            <div class="table-panel">
+              <div class="table-header">
+                <div class="table-title-area">
+                  <h3>📑 Cơ Cấu Nguồn Dữ Liệu</h3>
+                  <span>Số lượng bản ghi và tỷ trọng từng trang nghiệp vụ</span>
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="custom-table">
+                  <thead>
+                    <tr>
+                      <th>Trang Dữ Liệu</th>
+                      <th style="text-align: center;">Số Bản Ghi</th>
+                      <th style="text-align: right;">Giá Trị Ghi Nhận</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>1. Sổ Thu Chi Chung</strong><br><small class="text-muted">Giao dịch thu/chi tổng quát</small></td>
+                      <td id="rep-src-tx-count" style="text-align: center; font-weight: 600;">0</td>
+                      <td style="text-align: right;">
+                        <span id="rep-src-tx-income" class="text-positive" style="display: block;">Thu: 0 ₫</span>
+                        <span id="rep-src-tx-expense" class="text-negative" style="display: block;">Chi: 0 ₫</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>2. Đối Soát Bán Hàng F&B</strong><br><small class="text-muted">KiotViet vs Tiền mặt + MB</small></td>
+                      <td id="rep-src-fnb-days" style="text-align: center; font-weight: 600;">0 ngày</td>
+                      <td style="text-align: right;">
+                        <span id="rep-src-fnb-collected" style="display: block; font-weight: 600; color: #c2410c;">Thực thu: 0 ₫</span>
+                        <span id="rep-src-fnb-diff" class="text-muted" style="display: block; font-size: 0.8rem;">Chênh: 0 ₫</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>3. Chi Lương & Chuyển Khoản</strong><br><small class="text-muted">Lương nhân sự & UNC ngân hàng</small></td>
+                      <td id="rep-src-sb-count" style="text-align: center; font-weight: 600;">0</td>
+                      <td style="text-align: right;">
+                        <span id="rep-src-sb-salary" style="display: block; color: #6d28d9;">Lương: 0 ₫</span>
+                        <span id="rep-src-sb-transfer" style="display: block; color: #2563eb;">Chi CK: 0 ₫</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- PHÂN BỔ CHI LƯƠNG & CHUYỂN KHOẢN THEO DANH MỤC -->
+            <div class="table-panel">
+              <div class="table-header">
+                <div class="table-title-area">
+                  <h3>💳 Cơ Cấu Khoản Mục Chi Lương & CK</h3>
+                  <span>Chi tiết các khoản mục chi ngân hàng lớn nhất trong kỳ</span>
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="custom-table">
+                  <thead>
+                    <tr>
+                      <th>Khoản Mục Chi Phí</th>
+                      <th style="text-align: right;">Số Tiền (VND)</th>
+                      <th style="width: 100px; text-align: center;">Tỷ Trọng</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rep-sb-category-tbody">
+                    <!-- Render bằng JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. TIẾN ĐỘ THU - CHI THEO NGÀY (TIMELINE TABLE) -->
+          <div class="table-panel">
+            <div class="table-header">
+              <div class="table-title-area">
+                <h3>📅 Nhật Ký Tiến Độ Thu - Chi Hợp Nhất Theo Ngày</h3>
+                <span>Tổng hợp toàn bộ dòng tiền thu - chi phát sinh theo từng ngày giao dịch</span>
+              </div>
+              <span id="rep-timeline-badge" class="badge badge-neutral">0 ngày phát sinh</span>
+            </div>
+
+            <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th style="width: 120px;">Ngày</th>
+                    <th style="text-align: right; color: var(--income-green);">Tổng Thu (+)</th>
+                    <th style="text-align: right;">Chi Sổ Chung (-)</th>
+                    <th style="text-align: right; color: #6d28d9;">Chi Lương & CK (-)</th>
+                    <th style="text-align: right; font-weight: 700; color: var(--expense-red);">Tổng Chi Hợp Nhất</th>
+                    <th style="text-align: right; font-weight: 700;">Chênh Lệch Ngày</th>
+                    <th style="text-align: right; color: #c2410c;">F&B Thực Thu</th>
+                  </tr>
+                </thead>
+                <tbody id="rep-timeline-tbody">
+                  <!-- Render bằng JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+      <!-- HẾT VIEW 5: BÁO CÁO THU - CHI TỔNG QUAN -->
+
       <!-- ================= VIEW 4: QUẢN LÝ HỆ THỐNG & PHÂN QUYỀN ================= -->
       <div id="view-system" class="app-view hidden">
 
@@ -1299,18 +1617,18 @@
             Tải các file mẫu Excel chuẩn để điền dữ liệu trước khi nhập vào hệ thống:
           </p>
           <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-            <a href="templates/mau_so_thu_chi_chung.xlsx" download="mau_so_thu_chi_chung.xlsx" class="btn btn-sm btn-outline" style="text-decoration: none; justify-content: space-between; display: flex; align-items: center;">
+            <button type="button" class="btn btn-sm btn-outline btn-download-template" data-template-type="transactions" style="justify-content: space-between; display: flex; align-items: center; width: 100%;">
               <span>📑 <strong>Mẫu 1: Sổ Thu Chi Chung</strong> (Sơn Mài, F&B, Văn phòng)</span>
-              <span style="color: var(--primary-color); font-weight: 600;">Tải về .xlsx ⬇️</span>
-            </a>
-            <a href="templates/mau_doi_soat_fnb.xlsx" download="mau_doi_soat_fnb.xlsx" class="btn btn-sm btn-outline" style="text-decoration: none; justify-content: space-between; display: flex; align-items: center;">
+              <span style="color: var(--primary-color); font-weight: 600;">Tải file mẫu có Droplist ⬇️</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline btn-download-template" data-template-type="fnb_reconciliation" style="justify-content: space-between; display: flex; align-items: center; width: 100%;">
               <span>⚖️ <strong>Mẫu 2: Đối Soát Bán Hàng F&B</strong> (KiotViet vs MB & Tiền mặt)</span>
-              <span style="color: var(--primary-color); font-weight: 600;">Tải về .xlsx ⬇️</span>
-            </a>
-            <a href="templates/mau_chi_luong_chuyen_khoan.xlsx" download="mau_chi_luong_chuyen_khoan.xlsx" class="btn btn-sm btn-outline" style="text-decoration: none; justify-content: space-between; display: flex; align-items: center;">
-              <span>💳 <strong>Mẫu 3: Chi Lương & Chuyển Khoản</strong> (Có gắn mã mảng)</span>
-              <span style="color: var(--primary-color); font-weight: 600;">Tải về .xlsx ⬇️</span>
-            </a>
+              <span style="color: var(--primary-color); font-weight: 600;">Tải file mẫu chuẩn ⬇️</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline btn-download-template" data-template-type="salary_bank" style="justify-content: space-between; display: flex; align-items: center; width: 100%;">
+              <span>💳 <strong>Mẫu 3: Chi Lương & Chuyển Khoản</strong> (Có sẵn Droplist danh mục)</span>
+              <span style="color: var(--primary-color); font-weight: 600;">Tải file mẫu có Droplist ⬇️</span>
+            </button>
           </div>
         </div>
 
@@ -1587,6 +1905,7 @@
   <script src="js/fnb-reconciliation.js"></script>
   <script src="js/salary-bank-expenses.js"></script>
   <script src="js/excel-import.js"></script>
+  <script src="js/report.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

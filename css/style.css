@@ -911,3 +911,41 @@ body {
   color: #92400e;
 }
 
+/* ================= PRINT STYLES CHO BÁO CÁO TỔNG QUAN ================= */
+@media print {
+  .app-header,
+  .filter-panel,
+  .header-actions,
+  #btn-export-report-excel,
+  #btn-print-report,
+  #btn-refresh-report,
+  .toast-container {
+    display: none !important;
+  }
+
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .main-wrapper {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .app-view:not(#view-report) {
+    display: none !important;
+  }
+
+  #view-report {
+    display: block !important;
+  }
+
+  .card, .table-panel, .unit-card, .kpi-card {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+    break-inside: avoid;
+  }
+}
+
+

@@ -27,10 +27,12 @@
     navBtnTransactions: document.getElementById("nav-btn-transactions"),
     navBtnFnbRec: document.getElementById("nav-btn-fnb-rec"),
     navBtnSalaryBank: document.getElementById("nav-btn-salary-bank"),
+    navBtnReport: document.getElementById("nav-btn-report"),
     navBtnSystem: document.getElementById("nav-btn-system"),
     viewTransactions: document.getElementById("view-transactions"),
     viewFnbRec: document.getElementById("view-fnb-reconciliation"),
     viewSalaryBank: document.getElementById("view-salary-bank"),
+    viewReport: document.getElementById("view-report"),
     viewSystem: document.getElementById("view-system"),
 
     // Config
@@ -300,6 +302,60 @@
     permActionDelete: document.getElementById("perm-action-delete"),
     permActionImport: document.getElementById("perm-action-import"),
     btnSaveUserPerm: document.getElementById("btn-save-user-perm"),
+
+    // ================= REPORT DOM =================
+    btnRefreshReport: document.getElementById("btn-refresh-report"),
+    btnExportReportExcel: document.getElementById("btn-export-report-excel"),
+    btnPrintReport: document.getElementById("btn-print-report"),
+    reportFilterStartDate: document.getElementById("report-filter-start-date"),
+    reportFilterEndDate: document.getElementById("report-filter-end-date"),
+    btnReportApplyFilter: document.getElementById("btn-report-apply-filter"),
+    reportPresetBtns: document.querySelectorAll(".report-preset-btn"),
+    reportLoading: document.getElementById("report-loading"),
+    reportContentWrapper: document.getElementById("report-content-wrapper"),
+
+    repGrandIncome: document.getElementById("rep-grand-income"),
+    repGrandExpense: document.getElementById("rep-grand-expense"),
+    repGrandExpenseSub: document.getElementById("rep-grand-expense-sub"),
+    repGrandNet: document.getElementById("rep-grand-net"),
+    repNetBadge: document.getElementById("rep-net-badge"),
+    repFnbCollected: document.getElementById("rep-fnb-collected"),
+    repFnbDiffStatus: document.getElementById("rep-fnb-diff-status"),
+
+    repUnitSonmaiBadge: document.getElementById("rep-unit-sonmai-badge"),
+    repUnitSonmaiIncome: document.getElementById("rep-unit-sonmai-income"),
+    repUnitSonmaiTxExpense: document.getElementById("rep-unit-sonmai-tx-expense"),
+    repUnitSonmaiSbExpense: document.getElementById("rep-unit-sonmai-sb-expense"),
+    repUnitSonmaiTotalExpense: document.getElementById("rep-unit-sonmai-total-expense"),
+    repUnitSonmaiNet: document.getElementById("rep-unit-sonmai-net"),
+
+    repUnitFnbBadge: document.getElementById("rep-unit-fnb-badge"),
+    repUnitFnbIncome: document.getElementById("rep-unit-fnb-income"),
+    repUnitFnbTxExpense: document.getElementById("rep-unit-fnb-tx-expense"),
+    repUnitFnbSbExpense: document.getElementById("rep-unit-fnb-sb-expense"),
+    repUnitFnbTotalExpense: document.getElementById("rep-unit-fnb-total-expense"),
+    repUnitFnbNet: document.getElementById("rep-unit-fnb-net"),
+
+    repUnitVpBadge: document.getElementById("rep-unit-vp-badge"),
+    repUnitVpIncome: document.getElementById("rep-unit-vp-income"),
+    repUnitVpTxExpense: document.getElementById("rep-unit-vp-tx-expense"),
+    repUnitVpSbExpense: document.getElementById("rep-unit-vp-sb-expense"),
+    repUnitVpTotalExpense: document.getElementById("rep-unit-vp-total-expense"),
+    repUnitVpNet: document.getElementById("rep-unit-vp-net"),
+
+    repSrcTxCount: document.getElementById("rep-src-tx-count"),
+    repSrcTxIncome: document.getElementById("rep-src-tx-income"),
+    repSrcTxExpense: document.getElementById("rep-src-tx-expense"),
+    repSrcFnbDays: document.getElementById("rep-src-fnb-days"),
+    repSrcFnbCollected: document.getElementById("rep-src-fnb-collected"),
+    repSrcFnbDiff: document.getElementById("rep-src-fnb-diff"),
+    repSrcSbCount: document.getElementById("rep-src-sb-count"),
+    repSrcSbSalary: document.getElementById("rep-src-sb-salary"),
+    repSrcSbTransfer: document.getElementById("rep-src-sb-transfer"),
+
+    repSbCategoryTbody: document.getElementById("rep-sb-category-tbody"),
+    repTimelineBadge: document.getElementById("rep-timeline-badge"),
+    repTimelineTbody: document.getElementById("rep-timeline-tbody"),
 
     // Toast Container
     toastContainer: document.getElementById("toast-container")
@@ -602,6 +658,9 @@
     }
     if (DOM.navBtnSalaryBank) {
       DOM.navBtnSalaryBank.style.display = window.SystemService.canAccess("salary_bank") ? "" : "none";
+    }
+    if (DOM.navBtnReport) {
+      DOM.navBtnReport.style.display = window.SystemService.canAccess("report") ? "" : "none";
     }
     if (DOM.navBtnSystem) {
       DOM.navBtnSystem.style.display = window.SystemService.canAccess("system") ? "" : "none";
@@ -1164,10 +1223,10 @@
     if (!DOM.navBtnTransactions || !DOM.navBtnFnbRec) return;
 
     function activateTab(activeBtn, activeView) {
-      [DOM.navBtnTransactions, DOM.navBtnFnbRec, DOM.navBtnSalaryBank, DOM.navBtnSystem].forEach(btn => {
+      [DOM.navBtnTransactions, DOM.navBtnFnbRec, DOM.navBtnSalaryBank, DOM.navBtnReport, DOM.navBtnSystem].forEach(btn => {
         if (btn) btn.classList.remove("active");
       });
-      [DOM.viewTransactions, DOM.viewFnbRec, DOM.viewSalaryBank, DOM.viewSystem].forEach(view => {
+      [DOM.viewTransactions, DOM.viewFnbRec, DOM.viewSalaryBank, DOM.viewReport, DOM.viewSystem].forEach(view => {
         if (view) view.classList.add("hidden");
       });
 
@@ -1188,6 +1247,13 @@
       DOM.navBtnSalaryBank.addEventListener("click", () => {
         activateTab(DOM.navBtnSalaryBank, DOM.viewSalaryBank);
         applySalaryBankFilters();
+      });
+    }
+
+    if (DOM.navBtnReport) {
+      DOM.navBtnReport.addEventListener("click", () => {
+        activateTab(DOM.navBtnReport, DOM.viewReport);
+        loadComprehensiveReport();
       });
     }
 
@@ -2128,6 +2194,21 @@
       });
     }
 
+    // 2b. Tải tệp Excel mẫu chuẩn kèm Droplist
+    document.querySelectorAll(".btn-download-template").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        const type = btn.getAttribute("data-template-type") || "salary_bank";
+        try {
+          window.ExcelImportService.downloadTemplate(type);
+          showToast(`Đã tải xuống file mẫu "${type}" có sẵn droplist!`, "success");
+        } catch (err) {
+          console.error("Lỗi tải template:", err);
+          showToast("Không thể tải file mẫu: " + err.message, "error");
+        }
+      });
+    });
+
     // 3. Reset trạng thái khi đổi loại import hoặc chọn file
     if (DOM.excelTargetType) {
       DOM.excelTargetType.addEventListener("change", () => {
@@ -2558,6 +2639,268 @@
     }
   }
 
+  // ================= COMPREHENSIVE FINANCIAL REPORT LOGIC =================
+  let currentReportData = null;
+
+  async function loadComprehensiveReport() {
+    if (!window.ReportService) return;
+
+    if (DOM.reportLoading) DOM.reportLoading.classList.remove("hidden");
+    if (DOM.reportContentWrapper) DOM.reportContentWrapper.style.opacity = "0.5";
+
+    const filters = {
+      startDate: DOM.reportFilterStartDate ? DOM.reportFilterStartDate.value : null,
+      endDate: DOM.reportFilterEndDate ? DOM.reportFilterEndDate.value : null
+    };
+
+    try {
+      const data = await window.ReportService.generateConsolidatedReport(filters);
+      currentReportData = data;
+      renderComprehensiveReport(data);
+    } catch (err) {
+      console.error("Lỗi tạo báo cáo tổng hợp:", err);
+      showToast("Không thể tải dữ liệu báo cáo: " + (err.message || "Lỗi Supabase"), "error");
+    } finally {
+      if (DOM.reportLoading) DOM.reportLoading.classList.add("hidden");
+      if (DOM.reportContentWrapper) DOM.reportContentWrapper.style.opacity = "1";
+    }
+  }
+
+  function renderComprehensiveReport(data) {
+    if (!data) return;
+
+    // 1. KPI TỔNG HỢP TOÀN HỆ THỐNG
+    if (DOM.repGrandIncome) {
+      DOM.repGrandIncome.textContent = window.DashboardManager.formatVND(data.grandTotalIncome);
+    }
+
+    if (DOM.repGrandExpense) {
+      DOM.repGrandExpense.textContent = window.DashboardManager.formatVND(data.grandTotalExpense);
+    }
+    if (DOM.repGrandExpenseSub) {
+      const txExp = window.DashboardManager.formatVND(data.sourceDetails.transactions.totalExpense);
+      const sbExp = window.DashboardManager.formatVND(data.sourceDetails.salaryBank.totalExpense);
+      DOM.repGrandExpenseSub.textContent = `Sổ chung: ${txExp} | Lương & CK: ${sbExp}`;
+    }
+
+    if (DOM.repGrandNet) {
+      DOM.repGrandNet.textContent = window.DashboardManager.formatVND(data.grandNetBalance);
+      DOM.repGrandNet.className = "kpi-value " + (data.grandNetBalance >= 0 ? "text-positive" : "text-negative");
+    }
+
+    if (DOM.repNetBadge) {
+      if (data.grandNetBalance > 0) {
+        DOM.repNetBadge.textContent = "Thặng dư (+)";
+        DOM.repNetBadge.className = "badge badge-success";
+      } else if (data.grandNetBalance < 0) {
+        DOM.repNetBadge.textContent = "Thâm hụt (-)";
+        DOM.repNetBadge.className = "badge badge-danger";
+      } else {
+        DOM.repNetBadge.textContent = "Cân bằng";
+        DOM.repNetBadge.className = "badge badge-neutral";
+      }
+    }
+
+    if (DOM.repFnbCollected) {
+      DOM.repFnbCollected.textContent = window.DashboardManager.formatVND(data.sourceDetails.fnb.collectedTotal);
+    }
+    if (DOM.repFnbDiffStatus) {
+      const diffVal = data.sourceDetails.fnb.diffTotal;
+      const diffStr = window.DashboardManager.formatVND(diffVal);
+      if (diffVal === 0) {
+        DOM.repFnbDiffStatus.textContent = `Khớp 100% (${data.sourceDetails.fnb.matchedDays} ngày)`;
+      } else if (diffVal > 0) {
+        DOM.repFnbDiffStatus.textContent = `Thừa: +${diffStr} (${data.sourceDetails.fnb.discrepantDays} ngày lệch)`;
+      } else {
+        DOM.repFnbDiffStatus.textContent = `Thiếu: ${diffStr} (${data.sourceDetails.fnb.discrepantDays} ngày lệch)`;
+      }
+    }
+
+    // 2. CHI TIẾT 3 MẢNG HOẠT ĐỘNG
+    const sm = data.units.SON_MAI || { income: 0, expense: 0, sbExpense: 0, totalExpenseCombined: 0, net: 0, txCount: 0 };
+    if (DOM.repUnitSonmaiBadge) DOM.repUnitSonmaiBadge.textContent = `${sm.txCount} GD`;
+    if (DOM.repUnitSonmaiIncome) DOM.repUnitSonmaiIncome.textContent = window.DashboardManager.formatVND(sm.income);
+    if (DOM.repUnitSonmaiTxExpense) DOM.repUnitSonmaiTxExpense.textContent = window.DashboardManager.formatVND(sm.expense);
+    if (DOM.repUnitSonmaiSbExpense) DOM.repUnitSonmaiSbExpense.textContent = window.DashboardManager.formatVND(sm.sbExpense);
+    if (DOM.repUnitSonmaiTotalExpense) DOM.repUnitSonmaiTotalExpense.textContent = window.DashboardManager.formatVND(sm.totalExpenseCombined);
+    if (DOM.repUnitSonmaiNet) {
+      DOM.repUnitSonmaiNet.textContent = window.DashboardManager.formatVND(sm.net);
+      DOM.repUnitSonmaiNet.className = "unit-net-value " + (sm.net >= 0 ? "text-positive" : "text-negative");
+    }
+
+    const fnb = data.units.FNB || { income: 0, expense: 0, sbExpense: 0, totalExpenseCombined: 0, net: 0, txCount: 0 };
+    if (DOM.repUnitFnbBadge) DOM.repUnitFnbBadge.textContent = `${fnb.txCount} GD`;
+    if (DOM.repUnitFnbIncome) DOM.repUnitFnbIncome.textContent = window.DashboardManager.formatVND(fnb.income);
+    if (DOM.repUnitFnbTxExpense) DOM.repUnitFnbTxExpense.textContent = window.DashboardManager.formatVND(fnb.expense);
+    if (DOM.repUnitFnbSbExpense) DOM.repUnitFnbSbExpense.textContent = window.DashboardManager.formatVND(fnb.sbExpense);
+    if (DOM.repUnitFnbTotalExpense) DOM.repUnitFnbTotalExpense.textContent = window.DashboardManager.formatVND(fnb.totalExpenseCombined);
+    if (DOM.repUnitFnbNet) {
+      DOM.repUnitFnbNet.textContent = window.DashboardManager.formatVND(fnb.net);
+      DOM.repUnitFnbNet.className = "unit-net-value " + (fnb.net >= 0 ? "text-positive" : "text-negative");
+    }
+
+    const vp = data.units.VAN_PHONG || { income: 0, expense: 0, sbExpense: 0, totalExpenseCombined: 0, net: 0, txCount: 0 };
+    if (DOM.repUnitVpBadge) DOM.repUnitVpBadge.textContent = `${vp.txCount} GD`;
+    if (DOM.repUnitVpIncome) DOM.repUnitVpIncome.textContent = window.DashboardManager.formatVND(vp.income);
+    if (DOM.repUnitVpTxExpense) DOM.repUnitVpTxExpense.textContent = window.DashboardManager.formatVND(vp.expense);
+    if (DOM.repUnitVpSbExpense) DOM.repUnitVpSbExpense.textContent = window.DashboardManager.formatVND(vp.sbExpense);
+    if (DOM.repUnitVpTotalExpense) DOM.repUnitVpTotalExpense.textContent = window.DashboardManager.formatVND(vp.totalExpenseCombined);
+    if (DOM.repUnitVpNet) {
+      DOM.repUnitVpNet.textContent = window.DashboardManager.formatVND(vp.net);
+      DOM.repUnitVpNet.className = "unit-net-value " + (vp.net >= 0 ? "text-positive" : "text-negative");
+    }
+
+    // 3. CƠ CẤU NGUỒN DỮ LIỆU
+    if (DOM.repSrcTxCount) DOM.repSrcTxCount.textContent = `${data.sourceDetails.transactions.count} giao dịch`;
+    if (DOM.repSrcTxIncome) DOM.repSrcTxIncome.textContent = `Thu: ${window.DashboardManager.formatVND(data.sourceDetails.transactions.totalIncome)}`;
+    if (DOM.repSrcTxExpense) DOM.repSrcTxExpense.textContent = `Chi: ${window.DashboardManager.formatVND(data.sourceDetails.transactions.totalExpense)}`;
+
+    if (DOM.repSrcFnbDays) DOM.repSrcFnbDays.textContent = `${data.sourceDetails.fnb.daysCount} ngày đối soát`;
+    if (DOM.repSrcFnbCollected) DOM.repSrcFnbCollected.textContent = `Thực thu: ${window.DashboardManager.formatVND(data.sourceDetails.fnb.collectedTotal)}`;
+    if (DOM.repSrcFnbDiff) {
+      DOM.repSrcFnbDiff.textContent = `KiotViet: ${window.DashboardManager.formatVND(data.sourceDetails.fnb.kiotvietTotal)} | Chênh: ${window.DashboardManager.formatVND(data.sourceDetails.fnb.diffTotal)}`;
+    }
+
+    if (DOM.repSrcSbCount) DOM.repSrcSbCount.textContent = `${data.sourceDetails.salaryBank.count} giao dịch`;
+    if (DOM.repSrcSbSalary) DOM.repSrcSbSalary.textContent = `Lương: ${window.DashboardManager.formatVND(data.sourceDetails.salaryBank.totalSalary)}`;
+    if (DOM.repSrcSbTransfer) DOM.repSrcSbTransfer.textContent = `Chi CK: ${window.DashboardManager.formatVND(data.sourceDetails.salaryBank.totalBankTransfer)}`;
+
+    // 4. BẢNG CƠ CẤU DANH MỤC LƯƠNG & CHUYỂN KHOẢN
+    if (DOM.repSbCategoryTbody) {
+      DOM.repSbCategoryTbody.innerHTML = "";
+      const catMap = data.sourceDetails.salaryBank.categories || {};
+      const totalSb = data.sourceDetails.salaryBank.totalExpense || 1;
+      const sortedCats = Object.entries(catMap).sort((a, b) => b[1] - a[1]);
+
+      if (sortedCats.length === 0) {
+        DOM.repSbCategoryTbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Không có chi phí lương / CK trong kỳ</td></tr>`;
+      } else {
+        const labels = window.SalaryBankExpenseService?.CATEGORY_LABELS || {};
+        sortedCats.forEach(([catKey, amount]) => {
+          const pct = Math.round((amount / totalSb) * 100);
+          const label = labels[catKey] || catKey;
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td><strong>${escapeHtml(label)}</strong></td>
+            <td style="text-align: right; font-weight: 600; color: #6d28d9;">${window.DashboardManager.formatVND(amount)}</td>
+            <td style="text-align: center;">
+              <span class="badge" style="background: #ede9fe; color: #6d28d9; font-weight: 600;">${pct}%</span>
+            </td>
+          `;
+          DOM.repSbCategoryTbody.appendChild(tr);
+        });
+      }
+    }
+
+    // 5. BẢNG DÒNG TIỀN THEO NGÀY (TIMELINE)
+    if (DOM.repTimelineTbody) {
+      DOM.repTimelineTbody.innerHTML = "";
+      if (DOM.repTimelineBadge) DOM.repTimelineBadge.textContent = `${data.timeline.length} ngày phát sinh`;
+
+      if (data.timeline.length === 0) {
+        DOM.repTimelineTbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Không có phát sinh thu chi trong khoảng thời gian này</td></tr>`;
+      } else {
+        data.timeline.forEach(d => {
+          const tr = document.createElement("tr");
+          const netClass = d.net >= 0 ? "text-positive" : "text-negative";
+          tr.innerHTML = `
+            <td style="font-weight: 600;">${formatDateVN(d.date)}</td>
+            <td style="text-align: right; font-weight: 600;" class="text-positive">${window.DashboardManager.formatVND(d.income)}</td>
+            <td style="text-align: right;" class="text-negative">${window.DashboardManager.formatVND(d.txExpense)}</td>
+            <td style="text-align: right; color: #6d28d9;">${window.DashboardManager.formatVND(d.sbExpense)}</td>
+            <td style="text-align: right; font-weight: 700;" class="text-negative">${window.DashboardManager.formatVND(d.totalExpense)}</td>
+            <td style="text-align: right; font-weight: 700;" class="${netClass}">${window.DashboardManager.formatVND(d.net)}</td>
+            <td style="text-align: right; color: #c2410c;">${d.fnbRevenue > 0 ? window.DashboardManager.formatVND(d.fnbRevenue) : "-"}</td>
+          `;
+          DOM.repTimelineTbody.appendChild(tr);
+        });
+      }
+    }
+  }
+
+  function setupReportEvents() {
+    if (DOM.btnRefreshReport) {
+      DOM.btnRefreshReport.addEventListener("click", () => {
+        loadComprehensiveReport();
+        showToast("Đã cập nhật số liệu báo cáo tổng quan.", "info");
+      });
+    }
+
+    if (DOM.btnReportApplyFilter) {
+      DOM.btnReportApplyFilter.addEventListener("click", () => {
+        loadComprehensiveReport();
+      });
+    }
+
+    // Presets khoảng ngày cho Báo cáo
+    DOM.reportPresetBtns.forEach(btn => {
+      btn.addEventListener("click", () => {
+        DOM.reportPresetBtns.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        const preset = btn.getAttribute("data-preset");
+        applyReportDatePreset(preset);
+        loadComprehensiveReport();
+      });
+    });
+
+    // Xuất Excel tổng hợp
+    if (DOM.btnExportReportExcel) {
+      DOM.btnExportReportExcel.addEventListener("click", () => {
+        if (!currentReportData) {
+          showToast("Chưa có dữ liệu báo cáo để xuất.", "warning");
+          return;
+        }
+        try {
+          window.ReportService.exportToExcel(currentReportData);
+          showToast("Đã tải xuống file Excel báo cáo tổng hợp!", "success");
+        } catch (e) {
+          console.error("Lỗi xuất Excel:", e);
+          showToast("Không thể xuất Excel: " + e.message, "error");
+        }
+      });
+    }
+
+    // In báo cáo (Print)
+    if (DOM.btnPrintReport) {
+      DOM.btnPrintReport.addEventListener("click", () => {
+        window.print();
+      });
+    }
+  }
+
+  function applyReportDatePreset(preset) {
+    if (!DOM.reportFilterStartDate || !DOM.reportFilterEndDate) return;
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = today.getMonth();
+
+    if (preset === "today") {
+      const dStr = getTodayString();
+      DOM.reportFilterStartDate.value = dStr;
+      DOM.reportFilterEndDate.value = dStr;
+    } else if (preset === "month") {
+      const firstDay = new Date(y, m, 1);
+      const lastDay = new Date(y, m + 1, 0);
+      DOM.reportFilterStartDate.value = formatDateIso(firstDay);
+      DOM.reportFilterEndDate.value = formatDateIso(lastDay);
+    } else if (preset === "quarter") {
+      const qMonth = Math.floor(m / 3) * 3;
+      const firstDay = new Date(y, qMonth, 1);
+      const lastDay = new Date(y, qMonth + 3, 0);
+      DOM.reportFilterStartDate.value = formatDateIso(firstDay);
+      DOM.reportFilterEndDate.value = formatDateIso(lastDay);
+    } else if (preset === "year") {
+      const firstDay = new Date(y, 0, 1);
+      const lastDay = new Date(y, 11, 31);
+      DOM.reportFilterStartDate.value = formatDateIso(firstDay);
+      DOM.reportFilterEndDate.value = formatDateIso(lastDay);
+    } else if (preset === "all") {
+      DOM.reportFilterStartDate.value = "";
+      DOM.reportFilterEndDate.value = "";
+    }
+  }
+
   // ================= INIT APPLICATION =================
   function init() {
     setupConfigEvents();
@@ -2569,6 +2912,7 @@
     setupSalaryBankEvents();
     setupExcelImportEvents();
     setupSystemEvents();
+    setupReportEvents();
 
     // Khởi tạo ngày hôm nay cho modals và form nhập liệu
     DOM.txDate.value = getTodayString();

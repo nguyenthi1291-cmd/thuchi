@@ -172,7 +172,7 @@
 
       // Cách 2 Fallback: Sử dụng client tạm thời riêng biệt để đăng ký qua Auth và chèn user_profiles
       const tempClient = supabase.createClient(
-        window.SupabaseConfig.url,
+        window.SupabaseConfig.CONFIG.url,
         window.SupabaseConfig.getStoredAnonKey(),
         { auth: { persistSession: false } }
       );
@@ -316,6 +316,8 @@
           return !!this.myProfile.can_access_fnb;
         case "salary_bank":
           return !!this.myProfile.can_access_salary_bank;
+        case "report":
+          return !!this.myProfile.can_access_transactions || !!this.myProfile.can_access_salary_bank;
         case "system":
           return !!this.myProfile.can_access_system;
         default:
