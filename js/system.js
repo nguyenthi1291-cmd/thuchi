@@ -125,7 +125,103 @@
       };
     },
 
-    // 2. LẤY DANH SÁCH TẤT CẢ NGƯỜI DÙNG (DÀNH CHO ADMIN)
+    // 2. TẠO TÀI KHOẢN NGƯỜI DÙNG MỚI BỞI ADMIN
+    async createUserByAdmin(userData) {
+      const client = window.SupabaseConfig.getClient();
+      if (!client) throw new Error("Chưa kết nối Supabase.");
+
+      if (!userData.email || !userData.email.includes("@")) {
+        throw new Error("Email người dùng không hợp lệ.");
+      }
+      if (!userData.password || userData.password.length < 6) {
+        throw new Error("Mật khẩu phải có tối thiểu 6 ký tự.");
+      }
+
+      // Cách 1: Gọi hàm RPC create_user_by_admin (chạy bằng pgcrypto, không làm mất session của admin)
+      try {
+        const { data, error } = await client.rpc("create_user_by_admin", {
+          p_email: userData.email.trim(),
+          p_password: userData.password,
+          p_full_name: userData.full_name ? userData.full_name.trim() : null,
+          p_role: userData.role || "staff",
+          p_can_access_transactions: userData.can_access_transactions !== false,
+          p_can_access_fnb: userData.can_access_fnb !== false,
+          p_can_access_salary_bank: !!userData.can_access_salary_bank,
+          p_can_access_system: !!userData.can_access_system,
+          p_can_create: userData.can_create !== false,
+          p_can_edit: !!userData.can_edit,
+          p_can_delete: !!userData.can_delete,
+          p_can_import: !!userData.can_import,
+          p_notes: userData.notes ? userData.notes.trim() : null
+        });
+
+        if (!error && data) {
+          return data;
+        }
+
+        // Nếu gặp lỗi từ RPC, ghi nhận và thử fallback nếu RPC chưa được tạo trong CSDL
+        console.warn("RPC create_user_by_admin chưa sẵn sàng hoặc lỗi:", error);
+        if (error && error.message && !error.message.includes("does not exist") && !error.message.includes("not found")) {
+          throw new Error(error.message);
+        }
+      } catch (err) {
+        if (!err.message.includes("does not exist") && !err.message.includes("not found")) {
+          throw err;
+        }
+      }
+
+      // Cách 2 Fallback: Sử dụng client tạm thời riêng biệt để đăng ký qua Auth và chèn user_profiles
+      const tempClient = supabase.createClient(
+        window.SupabaseConfig.url,
+        window.SupabaseConfig.getStoredAnonKey(),
+        { auth: { persistSession: false } }
+      );
+
+      const { data: authData, error: authError } = await tempClient.auth.signUp({
+        email: userData.email.trim(),
+        password: userData.password,
+        options: {
+          data: {
+            full_name: userData.full_name ? userData.full_name.trim() : userData.email.split("@")[0]
+          }
+        }
+      });
+
+      if (authError) {
+        throw new Error("Lỗi khi tạo tài khoản: " + authError.message);
+      }
+
+      if (authData.user) {
+        const profilePayload = {
+          id: authData.user.id,
+          email: userData.email.trim().toLowerCase(),
+          full_name: userData.full_name ? userData.full_name.trim() : userData.email.split("@")[0],
+          role: userData.role || "staff",
+          can_access_transactions: userData.can_access_transactions !== false,
+          can_access_fnb: userData.can_access_fnb !== false,
+          can_access_salary_bank: !!userData.can_access_salary_bank,
+          can_access_system: !!userData.can_access_system,
+          can_create: userData.can_create !== false,
+          can_edit: !!userData.can_edit,
+          can_delete: !!userData.can_delete,
+          can_import: !!userData.can_import,
+          is_active: true,
+          notes: userData.notes ? userData.notes.trim() : null
+        };
+
+        await client
+          .from("user_profiles")
+          .upsert([profilePayload]);
+      }
+
+      return {
+        success: true,
+        email: userData.email,
+        message: "Đã tạo tài khoản thành công!"
+      };
+    },
+
+    // 3. LẤY DANH SÁCH TẤT CẢ NGƯỜI DÙNG (DÀNH CHO ADMIN)
     async getAllUsers() {
       const client = window.SupabaseConfig.getClient();
       if (!client) throw new Error("Chưa kết nối Supabase.");
@@ -142,7 +238,7 @@
       return data || [];
     },
 
-    // 3. CẬP NHẬT PHÂN QUYỀN & THÔNG TIN NGƯỜI DÙNG
+    // 4. CẬP NHẬT PHÂN QUYỀN & THÔNG TIN NGƯỜI DÙNG
     async updateUserProfile(userId, updateData) {
       const client = window.SupabaseConfig.getClient();
       if (!client) throw new Error("Chưa kết nối Supabase.");

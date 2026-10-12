@@ -960,6 +960,9 @@
               <span>Quản lý phân quyền truy cập trang và thao tác (Thêm mới, Chỉnh sửa, Xóa, Import)</span>
             </div>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <button id="btn-add-user" class="btn btn-primary btn-sm" title="Tạo tài khoản người dùng mới">
+                ➕ Tạo tài khoản mới
+              </button>
               <button id="btn-refresh-users" class="btn btn-outline btn-sm" title="Làm mới danh sách">
                 🔄 Làm mới
               </button>
@@ -1455,6 +1458,111 @@
           <button type="button" class="btn btn-outline" data-close-modal>Hủy bỏ</button>
           <button type="submit" id="btn-save-user-perm" class="btn btn-primary">
             💾 Lưu Phân Quyền
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL TẠO TÀI KHOẢN NGƯỜI DÙNG MỚI (DÀNH CHO ADMIN) -->
+  <div id="modal-create-user" class="modal-overlay">
+    <div class="modal-content" style="max-width: 580px;">
+      <div class="modal-header">
+        <h3 id="modal-create-user-title">➕ Tạo Tài Khoản Người Dùng Mới</h3>
+        <button type="button" class="close-btn" data-close-modal>&times;</button>
+      </div>
+
+      <form id="form-create-user">
+        <div class="modal-body">
+          <div class="two-col-grid" style="margin-bottom: 1rem;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="create-user-email">Email đăng nhập <span class="required">*</span></label>
+              <input type="email" id="create-user-email" class="form-control" placeholder="vidu@congty.com" required autocomplete="off">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="create-user-password">Mật khẩu khởi tạo <span class="required">*</span></label>
+              <input type="password" id="create-user-password" class="form-control" placeholder="Tối thiểu 6 ký tự" minlength="6" required autocomplete="new-password">
+            </div>
+          </div>
+
+          <div class="two-col-grid" style="margin-bottom: 1rem;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="create-user-name">Họ và tên hiển thị</label>
+              <input type="text" id="create-user-name" class="form-control" placeholder="Nguyễn Văn A">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="create-user-role">Vai trò chính (Role) <span class="required">*</span></label>
+              <select id="create-user-role" class="form-control" required style="font-weight: 600;">
+                <option value="staff" selected>Nhân viên (Staff)</option>
+                <option value="accountant">Kế toán (Accountant)</option>
+                <option value="manager">Quản lý (Manager)</option>
+                <option value="admin">Quản trị viên (Admin - Toàn quyền)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- NHÓM QUYỀN 1: TRUY CẬP TRANG -->
+          <div style="border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin-bottom: 1rem; background: var(--bg-hover, #f8fafc);">
+            <div style="font-weight: 700; font-size: 0.88rem; color: var(--text-main); margin-bottom: 0.65rem;">
+              📄 Cấp quyền truy cập các trang:
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem;">
+              <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                <input type="checkbox" id="create-perm-page-tx" checked>
+                <span>📑 Sổ Thu Chi Chung</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                <input type="checkbox" id="create-perm-page-fnb" checked>
+                <span>⚖️ Đối soát Bán hàng F&B</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                <input type="checkbox" id="create-perm-page-sb">
+                <span>💳 Chi Lương & Chuyển Khoản</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                <input type="checkbox" id="create-perm-page-sys">
+                <span>⚙️ Quản Lý Hệ Thống</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- NHÓM QUYỀN 2: THAO TÁC DỮ LIỆU -->
+          <div style="border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin-bottom: 1rem; background: var(--bg-hover, #f8fafc);">
+            <div style="font-weight: 700; font-size: 0.88rem; color: var(--text-main); margin-bottom: 0.65rem;">
+              ✏️ Cấp quyền thao tác dữ liệu:
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem;">
+              <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                <input type="checkbox" id="create-perm-action-create" checked>
+                <span>➕ Thêm mới bản ghi (+)</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                <input type="checkbox" id="create-perm-action-edit">
+                <span>✏️ Chỉnh sửa bản ghi</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                <input type="checkbox" id="create-perm-action-delete">
+                <span>🗑️ Xóa bản ghi</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                <input type="checkbox" id="create-perm-action-import">
+                <span>📥 Import Excel hàng loạt</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="create-user-notes">Ghi chú phân công / Chức vụ</label>
+            <input type="text" id="create-user-notes" class="form-control" placeholder="Ví dụ: Kế toán viên cơ sở 1, Nhân viên thu ngân...">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" data-close-modal>Hủy bỏ</button>
+          <button type="submit" id="btn-submit-create-user" class="btn btn-primary">
+            ➕ Tạo Tài Khoản Mới
           </button>
         </div>
       </form>

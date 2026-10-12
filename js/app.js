@@ -256,10 +256,29 @@
     sysKpiActiveCount: document.getElementById("sys-kpi-active-count"),
 
     btnRefreshUsers: document.getElementById("btn-refresh-users"),
+    btnAddUser: document.getElementById("btn-add-user"),
     sysTableLoading: document.getElementById("sys-table-loading"),
     sysTableEmpty: document.getElementById("sys-table-empty"),
     sysTableWrapper: document.getElementById("sys-table-wrapper"),
     sysUsersTbody: document.getElementById("sys-users-tbody"),
+
+    // Modal Create User
+    modalCreateUser: document.getElementById("modal-create-user"),
+    formCreateUser: document.getElementById("form-create-user"),
+    createUserEmail: document.getElementById("create-user-email"),
+    createUserPassword: document.getElementById("create-user-password"),
+    createUserName: document.getElementById("create-user-name"),
+    createUserRole: document.getElementById("create-user-role"),
+    createPermPageTx: document.getElementById("create-perm-page-tx"),
+    createPermPageFnb: document.getElementById("create-perm-page-fnb"),
+    createPermPageSb: document.getElementById("create-perm-page-sb"),
+    createPermPageSys: document.getElementById("create-perm-page-sys"),
+    createPermActionCreate: document.getElementById("create-perm-action-create"),
+    createPermActionEdit: document.getElementById("create-perm-action-edit"),
+    createPermActionDelete: document.getElementById("create-perm-action-delete"),
+    createPermActionImport: document.getElementById("create-perm-action-import"),
+    createUserNotes: document.getElementById("create-user-notes"),
+    btnSubmitCreateUser: document.getElementById("btn-submit-create-user"),
 
     modalEditUser: document.getElementById("modal-edit-user"),
     modalEditUserTitle: document.getElementById("modal-edit-user-title"),
@@ -604,6 +623,10 @@
         btn.style.display = canImport ? "" : "none";
       });
     }
+
+    // Phân quyền nút Tạo tài khoản (chỉ Admin)
+    const isAdmin = window.SystemService.isAdmin();
+    if (DOM.btnAddUser) DOM.btnAddUser.style.display = isAdmin ? "" : "none";
   }
 
   function onUserSignedOut() {
@@ -2376,7 +2399,111 @@
     openModal(DOM.modalEditUser);
   }
 
+  function resetCreateUserForm() {
+    if (DOM.formCreateUser) DOM.formCreateUser.reset();
+    if (DOM.createUserEmail) DOM.createUserEmail.value = "";
+    if (DOM.createUserPassword) DOM.createUserPassword.value = "";
+    if (DOM.createUserName) DOM.createUserName.value = "";
+    if (DOM.createUserRole) DOM.createUserRole.value = "staff";
+    if (DOM.createPermPageTx) DOM.createPermPageTx.checked = true;
+    if (DOM.createPermPageFnb) DOM.createPermPageFnb.checked = true;
+    if (DOM.createPermPageSb) DOM.createPermPageSb.checked = false;
+    if (DOM.createPermPageSys) DOM.createPermPageSys.checked = false;
+    if (DOM.createPermActionCreate) DOM.createPermActionCreate.checked = true;
+    if (DOM.createPermActionEdit) DOM.createPermActionEdit.checked = false;
+    if (DOM.createPermActionDelete) DOM.createPermActionDelete.checked = false;
+    if (DOM.createPermActionImport) DOM.createPermActionImport.checked = false;
+    if (DOM.createUserNotes) DOM.createUserNotes.value = "";
+    if (DOM.btnSubmitCreateUser) {
+      DOM.btnSubmitCreateUser.disabled = false;
+      DOM.btnSubmitCreateUser.textContent = "➕ Tạo Tài Khoản Mới";
+    }
+  }
+
   function setupSystemEvents() {
+    // Nút mở modal tạo tài khoản mới
+    if (DOM.btnAddUser) {
+      DOM.btnAddUser.addEventListener("click", () => {
+        if (!window.SystemService.isAdmin()) {
+          showToast("Chỉ Admin mới được tạo tài khoản mới.", "error");
+          return;
+        }
+        resetCreateUserForm();
+        openModal(DOM.modalCreateUser);
+      });
+    }
+
+    // Auto-check tất cả quyền khi chọn vai trò Admin trong form tạo mới
+    if (DOM.createUserRole) {
+      DOM.createUserRole.addEventListener("change", () => {
+        if (DOM.createUserRole.value === "admin") {
+          if (DOM.createPermPageTx) DOM.createPermPageTx.checked = true;
+          if (DOM.createPermPageFnb) DOM.createPermPageFnb.checked = true;
+          if (DOM.createPermPageSb) DOM.createPermPageSb.checked = true;
+          if (DOM.createPermPageSys) DOM.createPermPageSys.checked = true;
+          if (DOM.createPermActionCreate) DOM.createPermActionCreate.checked = true;
+          if (DOM.createPermActionEdit) DOM.createPermActionEdit.checked = true;
+          if (DOM.createPermActionDelete) DOM.createPermActionDelete.checked = true;
+          if (DOM.createPermActionImport) DOM.createPermActionImport.checked = true;
+        }
+      });
+    }
+
+    // Xử lý submit form tạo tài khoản mới
+    if (DOM.formCreateUser) {
+      DOM.formCreateUser.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const email = (DOM.createUserEmail?.value || "").trim();
+        const password = DOM.createUserPassword?.value || "";
+        const fullName = (DOM.createUserName?.value || "").trim();
+        const role = DOM.createUserRole?.value || "staff";
+
+        if (!email || !email.includes("@")) {
+          showToast("Vui lòng nhập email hợp lệ.", "error");
+          return;
+        }
+        if (!password || password.length < 6) {
+          showToast("Mật khẩu phải có tối thiểu 6 ký tự.", "error");
+          return;
+        }
+
+        const userData = {
+          email,
+          password,
+          full_name: fullName || email.split("@")[0],
+          role,
+          can_access_transactions: !!DOM.createPermPageTx?.checked,
+          can_access_fnb: !!DOM.createPermPageFnb?.checked,
+          can_access_salary_bank: !!DOM.createPermPageSb?.checked,
+          can_access_system: !!DOM.createPermPageSys?.checked,
+          can_create: !!DOM.createPermActionCreate?.checked,
+          can_edit: !!DOM.createPermActionEdit?.checked,
+          can_delete: !!DOM.createPermActionDelete?.checked,
+          can_import: !!DOM.createPermActionImport?.checked,
+          notes: (DOM.createUserNotes?.value || "").trim() || null
+        };
+
+        DOM.btnSubmitCreateUser.disabled = true;
+        DOM.btnSubmitCreateUser.textContent = "⏳ Đang tạo tài khoản...";
+
+        try {
+          await window.SystemService.createUserByAdmin(userData);
+          showToast(`🎉 Đã tạo tài khoản "${email}" thành công!`, "success");
+          closeModal(DOM.modalCreateUser);
+          await loadSystemUsers();
+        } catch (err) {
+          console.error("Lỗi tạo tài khoản:", err);
+          showToast("Lỗi tạo tài khoản: " + (err.message || "Vui lòng thử lại"), "error");
+        } finally {
+          if (DOM.btnSubmitCreateUser) {
+            DOM.btnSubmitCreateUser.disabled = false;
+            DOM.btnSubmitCreateUser.textContent = "➕ Tạo Tài Khoản Mới";
+          }
+        }
+      });
+    }
+
     if (DOM.btnRefreshUsers) {
       DOM.btnRefreshUsers.addEventListener("click", () => {
         loadSystemUsers();

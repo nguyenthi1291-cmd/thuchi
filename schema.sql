@@ -456,5 +456,154 @@ create trigger set_user_profiles_updated_at
 before update on public.user_profiles
 for each row execute function public.handle_updated_at();
 
+-- ============================================================
+-- 13. HÀM TẠO TÀI KHOẢN NGƯỜI DÙNG BỞI ADMIN (ADMIN CREATE USER)
+-- ============================================================
+
+-- Bật extension pgcrypto để mã hóa mật khẩu an toàn
+create extension if not exists pgcrypto;
+
+-- Hàm RPC cho phép Admin tạo tài khoản người dùng trực tiếp trên web
+create or replace function public.create_user_by_admin(
+  p_email text,
+  p_password text,
+  p_full_name text default null,
+  p_role text default 'staff',
+  p_can_access_transactions boolean default true,
+  p_can_access_fnb boolean default true,
+  p_can_access_salary_bank boolean default false,
+  p_can_access_system boolean default false,
+  p_can_create boolean default true,
+  p_can_edit boolean default false,
+  p_can_delete boolean default false,
+  p_can_import boolean default false,
+  p_notes text default null
+)
+returns json
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+declare
+  v_user_id uuid;
+  v_encrypted_pw text;
+  v_result json;
+begin
+  -- 1. Kiểm tra quyền: Người gọi phải là Admin
+  if not public.is_admin() then
+    raise exception 'Chỉ có Quản trị viên (Admin) mới có quyền tạo tài khoản người dùng!';
+  end if;
+
+  -- 2. Kiểm tra tính hợp lệ của email và mật khẩu
+  if p_email is null or trim(p_email) = '' or p_email not like '%@%' then
+    raise exception 'Địa chỉ email không hợp lệ!';
+  end if;
+
+  if p_password is null or length(p_password) < 6 then
+    raise exception 'Mật khẩu phải có tối thiểu 6 ký tự!';
+  end if;
+
+  -- 3. Kiểm tra xem email đã tồn tại trong auth.users chưa
+  if exists (select 1 from auth.users where email = lower(trim(p_email))) then
+    raise exception 'Email "%" đã tồn tại trong hệ thống!', p_email;
+  end if;
+
+  -- 4. Tạo ID và mã hóa mật khẩu bằng bcrypt
+  v_user_id := gen_random_uuid();
+  v_encrypted_pw := crypt(p_password, gen_salt('bf'));
+
+  -- 5. Chèn trực tiếp vào auth.users (xác nhận email ngay lập tức để đăng nhập được ngay)
+  insert into auth.users (
+    instance_id,
+    id,
+    aud,
+    role,
+    email,
+    encrypted_password,
+    email_confirmed_at,
+    raw_app_meta_data,
+    raw_user_meta_data,
+    created_at,
+    updated_at,
+    confirmation_token,
+    recovery_token
+  ) values (
+    '00000000-0000-0000-0000-000000000000',
+    v_user_id,
+    'authenticated',
+    'authenticated',
+    lower(trim(p_email)),
+    v_encrypted_pw,
+    now(),
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    jsonb_build_object('full_name', coalesce(p_full_name, split_part(p_email, '@', 1))),
+    now(),
+    now(),
+    '',
+    ''
+  );
+
+  -- 6. Cập nhật hoặc chèn hồ sơ và phân quyền vào public.user_profiles
+  insert into public.user_profiles (
+    id,
+    email,
+    full_name,
+    role,
+    can_access_transactions,
+    can_access_fnb,
+    can_access_salary_bank,
+    can_access_system,
+    can_create,
+    can_edit,
+    can_delete,
+    can_import,
+    is_active,
+    notes
+  ) values (
+    v_user_id,
+    lower(trim(p_email)),
+    coalesce(p_full_name, split_part(p_email, '@', 1)),
+    p_role,
+    coalesce(p_can_access_transactions, true),
+    coalesce(p_can_access_fnb, true),
+    coalesce(p_can_access_salary_bank, false),
+    coalesce(p_can_access_system, false),
+    coalesce(p_can_create, true),
+    coalesce(p_can_edit, false),
+    coalesce(p_can_delete, false),
+    coalesce(p_can_import, false),
+    true,
+    p_notes
+  )
+  on conflict (id) do update set
+    full_name = excluded.full_name,
+    role = excluded.role,
+    can_access_transactions = excluded.can_access_transactions,
+    can_access_fnb = excluded.can_access_fnb,
+    can_access_salary_bank = excluded.can_access_salary_bank,
+    can_access_system = excluded.can_access_system,
+    can_create = excluded.can_create,
+    can_edit = excluded.can_edit,
+    can_delete = excluded.can_delete,
+    can_import = excluded.can_import,
+    notes = excluded.notes,
+    updated_at = now();
+
+  -- 7. Trả về kết quả JSON
+  select json_build_object(
+    'success', true,
+    'user_id', v_user_id,
+    'email', lower(trim(p_email)),
+    'message', 'Tạo tài khoản và phân quyền thành công!'
+  ) into v_result;
+
+  return v_result;
+end;
+$$;
+
+-- Cấp quyền gọi hàm cho người dùng đã đăng nhập (sẽ kiểm tra is_admin bên trong)
+grant execute on function public.create_user_by_admin to authenticated;
+
+
 
 
