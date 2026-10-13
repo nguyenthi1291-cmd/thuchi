@@ -1141,24 +1141,24 @@
     });
 
     // Đóng modal khi bấm nút close hoặc click overlay
-    document.querySelectorAll("[data-close-modal]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        closeModal(DOM.modalTransaction);
-        closeModal(DOM.modalDelete);
-        closeModal(DOM.modalConfig);
-        closeModal(DOM.modalFnbRec);
-        closeModal(DOM.modalFnbDelete);
-      });
+    // Dùng event delegation: áp dụng cho MỌI modal (kể cả Excel import, xóa Chi lương, user...)
+    document.addEventListener("click", (e) => {
+      const closeBtn = e.target.closest("[data-close-modal]");
+      if (closeBtn) {
+        closeModal(closeBtn.closest(".modal-overlay"));
+        return;
+      }
+      // Đóng khi click ngoài backdrop
+      if (e.target.classList && e.target.classList.contains("modal-overlay")) {
+        closeModal(e.target);
+      }
     });
 
-    // Đóng khi click ngoài backdrop
-    [DOM.modalTransaction, DOM.modalDelete, DOM.modalConfig, DOM.modalFnbRec, DOM.modalFnbDelete].forEach(modal => {
-      if (!modal) return;
-      modal.addEventListener("click", (e) => {
-        if (e.target === modal) {
-          closeModal(modal);
-        }
-      });
+    // Đóng modal đang mở bằng phím Esc
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        document.querySelectorAll(".modal-overlay.active").forEach(m => closeModal(m));
+      }
     });
   }
 
