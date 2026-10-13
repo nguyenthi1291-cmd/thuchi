@@ -43,6 +43,9 @@
         <button id="nav-btn-salary-bank" class="nav-tab-btn" type="button">
           💳 Chi Lương & Chuyển Khoản
         </button>
+        <button id="nav-btn-salary-categories" class="nav-tab-btn" type="button">
+          📂 Danh mục Lương & CK
+        </button>
         <button id="nav-btn-report" class="nav-tab-btn" type="button">
           📊 Báo Cáo Tổng Quan
         </button>
@@ -893,6 +896,50 @@
 
       </div>
       <!-- HẾT VIEW 3: CHI PHÍ LƯƠNG & CHUYỂN KHOẢN -->
+      <!-- ================= VIEW 4: QUẢN LÝ DANH MỤC KHOẢN CHI LƯƠNG & CHUYỂN KHOẢN ================= -->
+      <div id="view-salary-categories" class="app-view hidden">
+        <div class="card" style="margin-bottom: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Quản lý Danh mục Chi Lương & Chuyển Khoản</h3>
+            <button id="btn-add-salary-category" class="btn btn-primary" style="background: #7c3aed;">
+              + Thêm danh mục
+            </button>
+          </div>
+        </div>
+        <div class="table-panel">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th style="width: 150px;">Mã</th>
+                <th>Nhãn</th>
+                <th style="width: 150px;">Người tạo</th>
+                <th style="width: 120px; text-align: center;">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="salary-category-tbody">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+        <!-- Modal for Add / Edit -->
+        <div id="modal-salary-category" class="modal hidden">
+          <div class="modal-content">
+            <span class="close" id="close-salary-category-modal">&times;</span>
+            <h4 id="modal-salary-category-title">Thêm danh mục</h4>
+            <form id="form-salary-category">
+              <div class="form-group">
+                <label for="sb-category-code">Mã danh mục</label>
+                <input type="text" id="sb-category-code" class="form-control" required />
+              </div>
+              <div class="form-group">
+                <label for="sb-category-label">Nhãn</label>
+                <input type="text" id="sb-category-label" class="form-control" required />
+              </div>
+              <button type="submit" class="btn btn-primary" id="btn-save-salary-category">Lưu</button>
+            </form>
+          </div>
+        </div>
+      </div>
 
       <!-- ================= VIEW 5: BÁO CÁO THU - CHI TỔNG QUAN TOÀN HỆ THỐNG ================= -->
       <div id="view-report" class="app-view hidden">

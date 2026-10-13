@@ -16,6 +16,8 @@
     currentFnbReconciliations: [],
     editingFnbRecId: null,
     currentSalaryBankExpenses: [],
+    salaryCategories: [],
+    editingSalaryCategoryCode: null,
     editingSalaryBankExpenseId: null,
     allUsers: []
   };
@@ -34,6 +36,18 @@
     viewSalaryBank: document.getElementById("view-salary-bank"),
     viewReport: document.getElementById("view-report"),
     viewSystem: document.getElementById("view-system"),
+    // Salary Categories view & controls
+    navBtnSalaryCategories: document.getElementById("nav-btn-salary-categories"),
+    viewSalaryCategories: document.getElementById("view-salary-categories"),
+    btnAddSalaryCategory: document.getElementById("btn-add-salary-category"),
+    salaryCategoryTbody: document.getElementById("salary-category-tbody"),
+    modalSalaryCategory: document.getElementById("modal-salary-category"),
+    closeSalaryCategoryModal: document.getElementById("close-salary-category-modal"),
+    formSalaryCategory: document.getElementById("form-salary-category"),
+    inputCategoryCode: document.getElementById("sb-category-code"),
+    inputCategoryLabel: document.getElementById("sb-category-label"),
+    btnSaveSalaryCategory: document.getElementById("btn-save-salary-category"),
+    modalSalaryCategoryTitle: document.getElementById("modal-salary-category-title"),
 
     // Config
     configAlertBanner: document.getElementById("config-alert-banner"),
@@ -660,6 +674,9 @@
     if (DOM.navBtnSalaryBank) {
       DOM.navBtnSalaryBank.style.display = window.SystemService.canAccess("salary_bank") ? "" : "none";
     }
+    if (DOM.navBtnSalaryCategories) {
+      DOM.navBtnSalaryCategories.style.display = window.SystemService.canAccess("salary_bank") ? "" : "none";
+    }
     if (DOM.navBtnReport) {
       DOM.navBtnReport.style.display = window.SystemService.canAccess("report") ? "" : "none";
     }
@@ -673,6 +690,7 @@
     if (DOM.btnAddFnbRec) DOM.btnAddFnbRec.style.display = canCreate ? "" : "none";
     if (DOM.btnAddSalaryBank) DOM.btnAddSalaryBank.style.display = canCreate ? "" : "none";
     if (DOM.btnSaveSalaryBank) DOM.btnSaveSalaryBank.style.display = canCreate ? "" : "none";
+    if (DOM.btnAddSalaryCategory) DOM.btnAddSalaryCategory.style.display = canCreate ? "" : "none";
     if (DOM.btnSaveInlineFnbRec) DOM.btnSaveInlineFnbRec.style.display = canCreate ? "" : "none";
 
     // Phân quyền nút Import Excel
@@ -718,7 +736,10 @@
       // 4. Tải dữ liệu đối soát F&B
       await applyFnbFilters();
 
-      // 5. Tải dữ liệu chi lương & chuyển khoản
+      // 5. Tải danh mục chi lương & CK (không chặn nếu lỗi – dùng danh mục mặc định)
+      await loadSalaryCategories({ silent: true });
+
+      // 6. Tải dữ liệu chi lương & chuyển khoản
       await applySalaryBankFilters();
     } catch (err) {
       console.error("Lỗi khi tải metadata ban đầu:", err);
@@ -1224,10 +1245,10 @@
     if (!DOM.navBtnTransactions || !DOM.navBtnFnbRec) return;
 
     function activateTab(activeBtn, activeView) {
-      [DOM.navBtnTransactions, DOM.navBtnFnbRec, DOM.navBtnSalaryBank, DOM.navBtnReport, DOM.navBtnSystem].forEach(btn => {
+      [DOM.navBtnTransactions, DOM.navBtnFnbRec, DOM.navBtnSalaryBank, DOM.navBtnSalaryCategories, DOM.navBtnReport, DOM.navBtnSystem].forEach(btn => {
         if (btn) btn.classList.remove("active");
       });
-      [DOM.viewTransactions, DOM.viewFnbRec, DOM.viewSalaryBank, DOM.viewReport, DOM.viewSystem].forEach(view => {
+      [DOM.viewTransactions, DOM.viewFnbRec, DOM.viewSalaryBank, DOM.viewSalaryCategories, DOM.viewReport, DOM.viewSystem].forEach(view => {
         if (view) view.classList.add("hidden");
       });
 
@@ -1248,6 +1269,14 @@
       DOM.navBtnSalaryBank.addEventListener("click", () => {
         activateTab(DOM.navBtnSalaryBank, DOM.viewSalaryBank);
         applySalaryBankFilters();
+      });
+    }
+
+    // [FIX] Gắn sự kiện cho tab "Danh mục Lương & CK" (trước đây bị thiếu)
+    if (DOM.navBtnSalaryCategories) {
+      DOM.navBtnSalaryCategories.addEventListener("click", () => {
+        activateTab(DOM.navBtnSalaryCategories, DOM.viewSalaryCategories);
+        loadSalaryCategories();
       });
     }
 
@@ -1691,38 +1720,7 @@
 
     // 1. Chuyển đổi loại: Chi Lương vs Chi Chuyển Khoản khác
     function updateSbCategoryDropdown(selectedCategory = null) {
-      if (!DOM.sbCategory) return;
-      const type = DOM.sbType.value || "bank_transfer";
-      DOM.sbCategory.innerHTML = "";
-
-      let categories = [];
-      if (type === "salary") {
-        categories = [
-          { val: "salary_fixed", label: "Lương cứng / Lương tháng" },
-          { val: "salary_shift", label: "Lương ca / Công nhật / Part-time" },
-          { val: "salary_advance", label: "Tạm ứng lương" },
-          { val: "salary_bonus", label: "Thưởng & Phụ cấp" },
-          { val: "other_expense", label: "Khác về nhân sự" }
-        ];
-      } else {
-        categories = [
-          { val: "supplier_payment", label: "Thanh toán NCC / Tiền hàng" },
-          { val: "rent_utility", label: "Thuê mặt bằng / Điện nước / Net" },
-          { val: "operation_cost", label: "Chi phí vận hành & Dụng cụ" },
-          { val: "tax_fee", label: "Thuế, phí & Dịch vụ ngoài" },
-          { val: "other_expense", label: "Chi chuyển khoản khác" }
-        ];
-      }
-
-      categories.forEach(c => {
-        const opt = document.createElement("option");
-        opt.value = c.val;
-        opt.textContent = c.label;
-        if (selectedCategory && selectedCategory === c.val) {
-          opt.selected = true;
-        }
-        DOM.sbCategory.appendChild(opt);
-      });
+      renderSbCategoryOptions(DOM.sbType ? DOM.sbType.value : "bank_transfer", selectedCategory);
     }
 
     if (DOM.btnSbTypeSalary && DOM.btnSbTypeTransfer) {
@@ -1928,6 +1926,214 @@
     }
   }
 
+  // ================= [FIX] DANH MỤC CHI LƯƠNG & CHUYỂN KHOẢN =================
+  // Vẽ lại dropdown danh mục trong form Chi Lương & CK theo loại chi
+  function renderSbCategoryOptions(type, selectedCategory = null) {
+    if (!DOM.sbCategory) return;
+    const list = window.SalaryBankExpenseService.getCategoriesForType(type || "bank_transfer");
+    DOM.sbCategory.innerHTML = "";
+
+    list.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c.code;
+      opt.textContent = c.label;
+      if (selectedCategory && selectedCategory === c.code) opt.selected = true;
+      DOM.sbCategory.appendChild(opt);
+    });
+
+    // Bản ghi cũ dùng danh mục đã bị xóa/đổi loại → vẫn hiện để không mất dữ liệu khi sửa
+    if (selectedCategory && !list.some(c => c.code === selectedCategory)) {
+      const opt = document.createElement("option");
+      opt.value = selectedCategory;
+      opt.textContent = (window.SalaryBankExpenseService.CATEGORY_LABELS[selectedCategory] || selectedCategory) + " (không còn trong danh mục)";
+      opt.selected = true;
+      DOM.sbCategory.appendChild(opt);
+    }
+  }
+
+  function isMissingTableError(err) {
+    const msg = String(err?.message || "");
+    return err?.code === "42P01" || err?.code === "PGRST205" || /salary_bank_categories/.test(msg) && /(does not exist|could not find)/i.test(msg);
+  }
+
+  // Tải danh mục từ Supabase → cập nhật bảng + dropdown
+  async function loadSalaryCategories(opts = {}) {
+    const silent = !!opts.silent;
+    if (DOM.salaryCategoryTbody && !silent) {
+      DOM.salaryCategoryTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-muted); padding: 1.5rem;">Đang tải danh mục...</td></tr>`;
+    }
+    try {
+      AppState.salaryCategories = await window.SalaryBankExpenseService.getCategories();
+      renderSalaryCategoryTable();
+    } catch (err) {
+      console.error("Lỗi tải danh mục chi lương & CK:", err);
+      AppState.salaryCategories = [];
+      const hint = isMissingTableError(err)
+        ? "Chưa có bảng <code>salary_bank_categories</code> trên Supabase. Vui lòng chạy file SQL tạo bảng (đang dùng danh mục mặc định)."
+        : "Không tải được danh mục: " + escapeHtml(err.message || "Lỗi database") + " (đang dùng danh mục mặc định).";
+      if (DOM.salaryCategoryTbody) {
+        DOM.salaryCategoryTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--danger, #dc2626); padding: 1.5rem;">${hint}</td></tr>`;
+      }
+      if (!silent) showToast(isMissingTableError(err) ? "Chưa tạo bảng danh mục trên Supabase." : "Lỗi tải danh mục: " + (err.message || ""), "error");
+    }
+    // Luôn làm mới dropdown form Chi Lương (giữ lựa chọn hiện tại nếu có)
+    renderSbCategoryOptions(DOM.sbType ? DOM.sbType.value : "bank_transfer", DOM.sbCategory ? DOM.sbCategory.value : null);
+  }
+
+  function renderSalaryCategoryTable() {
+    if (!DOM.salaryCategoryTbody) return;
+    const list = AppState.salaryCategories || [];
+    if (list.length === 0) {
+      DOM.salaryCategoryTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-muted); padding: 1.5rem;">Chưa có danh mục nào. Bấm "+ Thêm danh mục" để tạo.</td></tr>`;
+      return;
+    }
+
+    const canEdit = window.SystemService.canEdit();
+    const canDelete = window.SystemService.canDelete();
+    const typeLabels = window.SalaryBankExpenseService.EXPENSE_TYPE_LABELS;
+
+    DOM.salaryCategoryTbody.innerHTML = list.map(c => `
+      <tr>
+        <td style="font-family: monospace;">${escapeHtml(c.code)}</td>
+        <td>
+          <div style="font-weight: 500;">${escapeHtml(c.label)}</div>
+          <small style="color: var(--text-muted);">${escapeHtml(typeLabels[c.expense_type] || c.expense_type)}</small>
+        </td>
+        <td><small style="color: var(--text-muted);">${escapeHtml(c.created_by_email || "Hệ thống")}</small></td>
+        <td style="white-space: nowrap;">
+          ${canEdit ? `<button type="button" class="btn btn-outline btn-sm" data-cat-action="edit" data-code="${escapeHtml(c.code)}">✏️ Sửa</button>` : ""}
+          ${canDelete ? `<button type="button" class="btn btn-outline btn-sm" data-cat-action="delete" data-code="${escapeHtml(c.code)}">🗑️ Xóa</button>` : ""}
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  function openSalaryCategoryModal(cat = null) {
+    if (!DOM.modalSalaryCategory) return;
+    const typeSelect = document.getElementById("sb-category-type");
+    AppState.editingSalaryCategoryCode = cat ? cat.code : null;
+
+    if (DOM.inputCategoryCode) {
+      DOM.inputCategoryCode.value = cat ? cat.code : "";
+      DOM.inputCategoryCode.readOnly = !!cat; // Không cho đổi mã vì các khoản chi đang tham chiếu theo mã
+    }
+    if (DOM.inputCategoryLabel) DOM.inputCategoryLabel.value = cat ? cat.label : "";
+    if (typeSelect) typeSelect.value = cat ? cat.expense_type : "salary";
+    if (DOM.modalSalaryCategoryTitle) {
+      DOM.modalSalaryCategoryTitle.textContent = cat ? `✏️ Sửa danh mục: ${cat.code}` : "➕ Thêm danh mục chi lương & CK";
+    }
+    openModal(DOM.modalSalaryCategory);
+  }
+
+  function setupSalaryCategoryEvents() {
+    if (!DOM.viewSalaryCategories) return;
+
+    // Chuẩn hóa modal: index.html đặt class "modal hidden" và nằm trong view,
+    // trong khi các modal khác dùng "modal-overlay" + openModal() thêm class "active".
+    if (DOM.modalSalaryCategory) {
+      DOM.modalSalaryCategory.className = "modal-overlay";
+      document.body.appendChild(DOM.modalSalaryCategory);
+    }
+
+    // Bổ sung ô chọn "Loại chi" vào form (form gốc chỉ có Mã + Nhãn)
+    if (DOM.formSalaryCategory && !document.getElementById("sb-category-type")) {
+      const group = document.createElement("div");
+      group.className = "form-group";
+      group.innerHTML = `
+        <label for="sb-category-type">Áp dụng cho loại chi</label>
+        <select id="sb-category-type" class="form-control">
+          <option value="salary">👥 Chi lương</option>
+          <option value="bank_transfer">🏦 Chi chuyển khoản</option>
+          <option value="both">↔️ Dùng chung cả hai</option>
+        </select>`;
+      const anchor = DOM.btnSaveSalaryCategory ? DOM.btnSaveSalaryCategory.closest(".form-group, .modal-footer, div") : null;
+      if (anchor && anchor !== DOM.formSalaryCategory && DOM.formSalaryCategory.contains(anchor)) {
+        anchor.parentNode.insertBefore(group, anchor);
+      } else {
+        DOM.formSalaryCategory.insertBefore(group, DOM.btnSaveSalaryCategory || null);
+      }
+    }
+
+    if (DOM.btnAddSalaryCategory) {
+      DOM.btnAddSalaryCategory.addEventListener("click", () => {
+        if (!window.SystemService.canCreate()) {
+          showToast("Tài khoản của bạn không có quyền Thêm dữ liệu.", "warning");
+          return;
+        }
+        openSalaryCategoryModal(null);
+      });
+    }
+
+    if (DOM.closeSalaryCategoryModal) {
+      DOM.closeSalaryCategoryModal.addEventListener("click", () => closeModal(DOM.modalSalaryCategory));
+    }
+    if (DOM.modalSalaryCategory) {
+      DOM.modalSalaryCategory.addEventListener("click", (e) => {
+        if (e.target === DOM.modalSalaryCategory) closeModal(DOM.modalSalaryCategory);
+      });
+    }
+
+    if (DOM.formSalaryCategory) {
+      DOM.formSalaryCategory.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const isEdit = !!AppState.editingSalaryCategoryCode;
+        const typeSelect = document.getElementById("sb-category-type");
+        const formData = {
+          code: isEdit ? AppState.editingSalaryCategoryCode : DOM.inputCategoryCode.value,
+          label: DOM.inputCategoryLabel.value,
+          expense_type: typeSelect ? typeSelect.value : "bank_transfer"
+        };
+
+        const btn = DOM.btnSaveSalaryCategory;
+        if (btn) { btn.disabled = true; btn.textContent = "Đang lưu..."; }
+        try {
+          await window.SalaryBankExpenseService.saveCategory(formData, isEdit);
+          showToast(isEdit ? "Đã cập nhật danh mục." : "Đã thêm danh mục mới.", "success");
+          closeModal(DOM.modalSalaryCategory);
+          await loadSalaryCategories();
+        } catch (err) {
+          console.error(err);
+          showToast(isMissingTableError(err) ? "Chưa tạo bảng salary_bank_categories trên Supabase." : (err.message || "Lỗi lưu danh mục"), "error");
+        } finally {
+          if (btn) { btn.disabled = false; btn.textContent = "Lưu"; }
+        }
+      });
+    }
+
+    // Sửa / Xóa trong bảng (event delegation)
+    if (DOM.salaryCategoryTbody) {
+      DOM.salaryCategoryTbody.addEventListener("click", async (e) => {
+        const btn = e.target.closest("button[data-cat-action]");
+        if (!btn) return;
+        const code = btn.dataset.code;
+        const cat = (AppState.salaryCategories || []).find(c => c.code === code);
+        if (!cat) return;
+
+        if (btn.dataset.catAction === "edit") {
+          if (!window.SystemService.canEdit()) {
+            showToast("Tài khoản của bạn không có quyền Chỉnh sửa dữ liệu.", "warning");
+            return;
+          }
+          openSalaryCategoryModal(cat);
+        } else if (btn.dataset.catAction === "delete") {
+          if (!window.SystemService.canDelete()) {
+            showToast("Tài khoản của bạn không có quyền Xóa dữ liệu.", "warning");
+            return;
+          }
+          if (!confirm(`Xóa danh mục "${cat.label}" (${cat.code})?`)) return;
+          try {
+            await window.SalaryBankExpenseService.deleteCategory(code);
+            showToast("Đã xóa danh mục.", "success");
+            await loadSalaryCategories();
+          } catch (err) {
+            console.error(err);
+            showToast(err.message || "Lỗi xóa danh mục", "error");
+          }
+        }
+      });
+    }
+  }
+
   function populateInlineSbForm(record) {
     AppState.editingSalaryBankExpenseId = record.id;
     if (DOM.sbId) DOM.sbId.value = record.id;
@@ -1945,35 +2151,8 @@
       if (DOM.btnSbTypeSalary) DOM.btnSbTypeSalary.classList.remove("active", "type-expense");
     }
 
-    // Category
-    if (DOM.sbCategory) {
-      DOM.sbCategory.innerHTML = "";
-      let categories = [];
-      if (type === "salary") {
-        categories = [
-          { val: "salary_fixed", label: "Lương cứng / Lương tháng" },
-          { val: "salary_shift", label: "Lương ca / Công nhật / Part-time" },
-          { val: "salary_advance", label: "Tạm ứng lương" },
-          { val: "salary_bonus", label: "Thưởng & Phụ cấp" },
-          { val: "other_expense", label: "Khác về nhân sự" }
-        ];
-      } else {
-        categories = [
-          { val: "supplier_payment", label: "Thanh toán NCC / Tiền hàng" },
-          { val: "rent_utility", label: "Thuê mặt bằng / Điện nước / Net" },
-          { val: "operation_cost", label: "Chi phí vận hành & Dụng cụ" },
-          { val: "tax_fee", label: "Thuế, phí & Dịch vụ ngoài" },
-          { val: "other_expense", label: "Chi chuyển khoản khác" }
-        ];
-      }
-      categories.forEach(c => {
-        const opt = document.createElement("option");
-        opt.value = c.val;
-        opt.textContent = c.label;
-        if (c.val === record.expense_category) opt.selected = true;
-        DOM.sbCategory.appendChild(opt);
-      });
-    }
+    // Category (đọc từ danh mục đã tải)
+    renderSbCategoryOptions(type, record.expense_category);
 
     if (DOM.sbRecipient) DOM.sbRecipient.value = record.recipient_name || "";
     if (DOM.sbAmount) DOM.sbAmount.value = record.amount || "";
@@ -2916,6 +3095,7 @@
     setupTransactionModalEvents();
     setupFnbReconciliationEvents();
     setupSalaryBankEvents();
+    setupSalaryCategoryEvents();
     setupExcelImportEvents();
     setupSystemEvents();
     setupReportEvents();
