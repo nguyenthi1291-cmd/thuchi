@@ -206,6 +206,144 @@ const SalaryBankExpenseService = {
       count: expenses.length,
       unitsSummary
     };
+    // BỔ SUNG CHO salary-bank-expenses.js  (dán vào CUỐI file hiện tại)
+// Thêm các hàm mà app.js (bản 13/10) đang gọi nhưng file service cũ chưa có:
+//   EXPENSE_TYPE_LABELS, getCategories, getCategoriesForType,
+//   saveCategory, deleteCategory
+// Bảng Supabase dùng: public.salary_bank_categories (xem file SQL kèm theo)
+// =====================================================================
+(function () {
+  const svc = window.SalaryBankExpenseService;
+  if (!svc) {
+    console.error("SalaryBankExpenseService chưa được khởi tạo – kiểm tra thứ tự <script>.");
+    return;
+  }
+ 
+  const TABLE = "salary_bank_categories";
+ 
+  // Nhãn loại chi
+  const EXPENSE_TYPE_LABELS = {
+    salary: "Chi lương",
+    bank_transfer: "Chuyển khoản",
+  };
+ 
+  // Danh mục mặc định (dùng khi chưa có bảng / chưa có dữ liệu)
+  const baseLabels = Object.assign({}, svc.CATEGORY_LABELS || {});
+  const DEFAULT_CATEGORIES = Object.keys(baseLabels).map((code) => ({
+    code,
+    label: baseLabels[code],
+    expense_type: code.indexOf("salary_") === 0 ? "salary" : "bank_transfer",
+    created_by_email: null,
+    is_default: true,
+  }));
+ 
+  // Bộ nhớ đệm danh mục đã tải từ Supabase (null = chưa tải được)
+  let cache = null;
+ 
+  function getClient() {
+    const client = window.SupabaseConfig && window.SupabaseConfig.getClient();
+    if (!client) throw new Error("Chưa kết nối Supabase");
+    return client;
+  }
+ 
+  // Cập nhật CATEGORY_LABELS để bảng danh sách chi hiển thị đúng tên danh mục mới
+  function syncLabels(list) {
+    const labels = Object.assign({}, baseLabels);
+    (list || []).forEach((c) => { labels[c.code] = c.label; });
+    svc.CATEGORY_LABELS = labels;
+  }
+ 
+  // 1. Lấy toàn bộ danh mục (async) – app.js gọi khi mở tab / bấm Tải lại
+  async function getCategories() {
+    const client = getClient();
+    const { data, error } = await client
+      .from(TABLE)
+      .select("id, code, label, expense_type, created_by_email, created_at")
+      .order("expense_type", { ascending: true })
+      .order("code", { ascending: true });
+    if (error) {
+      cache = null;
+      syncLabels([]);
+      throw error;
+    }
+    cache = data && data.length ? data : null;
+    syncLabels(data);
+    // Bảng trống → trả về danh mục mặc định để người dùng vẫn thấy/sửa được
+    return data && data.length ? data : DEFAULT_CATEGORIES.slice();
+  }
+ 
+  // 2. Lấy danh mục theo loại chi (SYNC) – dùng cho dropdown form Chi Lương & CK
+  function getCategoriesForType(type) {
+    const src = cache || DEFAULT_CATEGORIES;
+    const t = type || "bank_transfer";
+    return src.filter((c) => (c.expense_type || "bank_transfer") === t);
+  }
+ 
+  // 3. Thêm / sửa danh mục
+  async function saveCategory(formData, isEdit) {
+    const client = getClient();
+    const code = String(formData.code || "").trim().toLowerCase().replace(/\s+/g, "_");
+    const label = String(formData.label || "").trim();
+    const expense_type = formData.expense_type === "salary" ? "salary" : "bank_transfer";
+ 
+    if (!/^[a-z0-9_]{2,50}$/.test(code)) {
+      throw new Error("Mã danh mục chỉ gồm chữ thường không dấu, số và dấu _ (2–50 ký tự).");
+    }
+    if (!label) throw new Error("Vui lòng nhập tên danh mục.");
+ 
+    const { data: userData } = await client.auth.getUser();
+    const email = userData && userData.user ? userData.user.email : null;
+ 
+    if (isEdit) {
+      // upsert: sửa được cả danh mục mặc định chưa có dòng trong bảng
+      const { data, error } = await client
+        .from(TABLE)
+        .upsert(
+          [{ code, label, expense_type, created_by_email: email, updated_at: new Date().toISOString() }],
+          { onConflict: "code" }
+        )
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
+ 
+    const { data, error } = await client
+      .from(TABLE)
+      .insert([{ code, label, expense_type, created_by_email: email }])
+      .select()
+      .single();
+    if (error) {
+      if (error.code === "23505") throw new Error(`Mã danh mục "${code}" đã tồn tại.`);
+      throw error;
+    }
+    return data;
+  }
+ 
+  // 4. Xóa danh mục (chặn xóa nếu đã có khoản chi dùng mã này)
+  async function deleteCategory(code) {
+    const client = getClient();
+    const { count, error: countErr } = await client
+      .from("salary_and_bank_expenses")
+      .select("id", { count: "exact", head: true })
+      .eq("expense_category", code);
+    if (!countErr && count > 0) {
+      throw new Error(`Không thể xóa: đang có ${count} khoản chi dùng danh mục này.`);
+    }
+    const { error } = await client.from(TABLE).delete().eq("code", code);
+    if (error) throw error;
+    return true;
+  }
+ 
+  Object.assign(svc, {
+    EXPENSE_TYPE_LABELS,
+    DEFAULT_CATEGORIES,
+    getCategories,
+    getCategoriesForType,
+    saveCategory,
+    deleteCategory,
+  });
+})();
   }
 };
 
