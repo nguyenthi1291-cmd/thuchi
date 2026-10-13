@@ -435,7 +435,13 @@
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
             // Đọc thành mảng object theo header dòng 1
-            const jsonData = window.XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+            const rawData = window.XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+            // Chuẩn hóa tên cột: bỏ khoảng trắng thừa đầu/cuối (vd: " So_Tien " -> "So_Tien")
+            const jsonData = rawData.map(row => {
+              const clean = {};
+              Object.keys(row).forEach(k => { clean[String(k).replace(/\s+/g, " ").trim()] = row[k]; });
+              return clean;
+            });
             resolve(jsonData);
           } catch (err) {
             reject(new Error("Lỗi khi đọc nội dung file Excel: " + err.message));
@@ -444,6 +450,13 @@
         reader.onerror = () => reject(new Error("Không thể đọc tệp tin đã chọn."));
         reader.readAsArrayBuffer(file);
       });
+    },
+
+    // 3b. Chuyển số tiền VND về số: nhận cả số Excel và chuỗi "20.826.989" / "20,826,989" / "20 826 989 đ"
+    parseMoney(val) {
+      if (typeof val === "number") return val;
+      const digits = String(val ?? "").replace(/[^0-9-]+/g, "");
+      return Number(digits) || 0;
     },
 
     // 4. Chuẩn hóa định dạng ngày sang YYYY-MM-DD
@@ -584,7 +597,7 @@
         }
 
         const rawAmount = r["So_Tien"] || r["Số tiền"] || r["Amount"];
-        const amount = Number(String(rawAmount).replace(/[^0-9.-]+/g, "")) || 0;
+        const amount = this.parseMoney(rawAmount);
         if (amount <= 0) {
           errors.push(`Dòng ${line}: Số tiền phải lớn hơn 0.`);
           continue;
@@ -653,9 +666,9 @@
           continue;
         }
 
-        const kv = Number(String(r["Doanh_Thu_KiotViet"] || r["KiotViet"] || 0).replace(/[^0-9.-]+/g, "")) || 0;
-        const cash = Number(String(r["Tien_Mat_Thuc_Thu"] || r["Tiền mặt"] || 0).replace(/[^0-9.-]+/g, "")) || 0;
-        const mb = Number(String(r["Chuyen_Khoan_MB"] || r["CK MB"] || 0).replace(/[^0-9.-]+/g, "")) || 0;
+        const kv = this.parseMoney(r["Doanh_Thu_KiotViet"] || r["KiotViet"] || 0);
+        const cash = this.parseMoney(r["Tien_Mat_Thuc_Thu"] || r["Tiền mặt"] || 0);
+        const mb = this.parseMoney(r["Chuyen_Khoan_MB"] || r["CK MB"] || 0);
         const diff = (cash + mb) - kv;
 
         const reason = (r["Ly_Do_Chenh_Lech"] || r["Lý do chênh lệch"] || "").toString().trim();
@@ -737,7 +750,7 @@
         }
 
         const rawAmount = r["So_Tien"] || r["Số tiền"];
-        const amount = Number(String(rawAmount).replace(/[^0-9.-]+/g, "")) || 0;
+        const amount = this.parseMoney(rawAmount);
         if (amount <= 0) {
           errors.push(`Dòng ${line}: Số tiền phải lớn hơn 0.`);
           continue;
