@@ -206,6 +206,12 @@ const SalaryBankExpenseService = {
       count: expenses.length,
       unitsSummary
     };
+  }
+};
+
+window.SalaryBankExpenseService = SalaryBankExpenseService;
+
+// =====================================================================
     // BỔ SUNG CHO salary-bank-expenses.js  (dán vào CUỐI file hiện tại)
 // Thêm các hàm mà app.js (bản 13/10) đang gọi nhưng file service cũ chưa có:
 //   EXPENSE_TYPE_LABELS, getCategories, getCategoriesForType,
@@ -344,7 +350,3 @@ const SalaryBankExpenseService = {
     deleteCategory,
   });
 })();
-  }
-};
-
-window.SalaryBankExpenseService = SalaryBankExpenseService;
