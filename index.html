@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quản lý Thu Chi — Sơn Mài • F&B • Văn phòng</title>
+  <title>Quản lý hoạt động</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
 </head>
@@ -35,13 +35,13 @@
       <!-- MAIN NAVIGATION TABS -->
       <nav id="main-nav-tabs" class="main-nav hidden">
         <button id="nav-btn-transactions" class="nav-tab-btn active" type="button">
-          📑 Sổ Thu Chi Chung
+          📑 Thanh toán tiền mặt
         </button>
         <button id="nav-btn-fnb-rec" class="nav-tab-btn" type="button">
           ⚖️ Đối soát Bán hàng F&B
         </button>
         <button id="nav-btn-salary-bank" class="nav-tab-btn" type="button">
-          💳 Chi Lương & Chuyển Khoản
+          💳 Thanh toán Chuyển khoản
         </button>
         <button id="nav-btn-report" class="nav-tab-btn" type="button">
           📊 Báo Cáo Tổng Quan
@@ -81,7 +81,7 @@
       <div class="auth-card">
         <div class="auth-intro">
           <h2>Đăng nhập Hệ thống</h2>
-          <p>Quản lý tài chính thu chi 3 mảng Sơn Mài, F&B và Văn phòng</p>
+          <p>Quản lý hoạt động theo mảng</p>
         </div>
 
         <div class="auth-tabs">
@@ -127,7 +127,7 @@
     <!-- ================= KHU VỰC CHÍNH (KHI ĐÃ ĐĂNG NHẬP) ================= -->
     <section id="app-section" class="hidden">
 
-      <!-- ================= VIEW 1: SỔ GIAO DỊCH THU CHI CHUNG ================= -->
+      <!-- ================= VIEW 1: SỔ NHẬT KÝ TIỀN MẶT ================= -->
       <div id="view-transactions" class="app-view">
 
         <!-- 1. DASHBOARD 4 CHỈ SỐ KPI CHÍNH -->
@@ -617,7 +617,7 @@
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
             <div>
               <h3 id="inline-sb-form-title" style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem;">
-                <span>💳 Nhập Chi Phí Lương & Chuyển Khoản Theo Mảng</span>
+                <span>💳 THANH TOÁN CHUYỂN KHOẢN </span>
                 <span id="inline-sb-badge-mode" class="badge badge-neutral" style="font-size: 0.75rem;">Tạo mới</span>
               </h3>
               <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">
@@ -653,10 +653,10 @@
                 <label>3. Phân loại chi <span class="required">*</span></label>
                 <div class="type-selector" style="display: flex; gap: 0.35rem;">
                   <button type="button" id="btn-sb-type-salary" class="type-btn" style="padding: 0.5rem 0.6rem; font-size: 0.82rem;">
-                    👥 Chi Lương
+                    👥 CHI LƯƠNG
                   </button>
                   <button type="button" id="btn-sb-type-transfer" class="type-btn active type-expense" style="padding: 0.5rem 0.6rem; font-size: 0.82rem;">
-                    🏦 Chi CK khác
+                    🏦 CHI NHÀ CUNG CẤP
                   </button>
                 </div>
                 <input type="hidden" id="sb-type" value="bank_transfer">
@@ -902,7 +902,7 @@
         <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
           <div>
             <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem;">
-              <span>📊 Báo Cáo Thu - Chi Tổng Quan Hợp Nhất</span>
+              <span>📊 Báo Cáo Hoạt Động Tổng Quan Hợp Nhất</span>
               <span class="badge badge-primary">Tất Cả Nguồn Dữ Liệu</span>
             </h2>
             <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 4px;">
@@ -1238,13 +1238,13 @@
             👥 Người Dùng &amp; Phân Quyền
           </button>
           <button id="sys-subtab-income" class="btn btn-sm btn-outline sys-subtab-btn" type="button">
-            📈 Danh Mục Thu (Sổ Chung)
+            📈 Danh Mục Thu
           </button>
           <button id="sys-subtab-expense" class="btn btn-sm btn-outline sys-subtab-btn" type="button">
-            📉 Danh Mục Chi (Sổ Chung)
+            📉 Danh Mục Chi
           </button>
           <button id="sys-subtab-salary" class="btn btn-sm btn-outline sys-subtab-btn" type="button">
-            💳 Danh Mục Lương &amp; CK
+            💳 Danh Muc chuyển khoản
           </button>
         </div>
 
