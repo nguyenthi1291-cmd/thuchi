@@ -36,18 +36,65 @@
     viewSalaryBank: document.getElementById("view-salary-bank"),
     viewReport: document.getElementById("view-report"),
     viewSystem: document.getElementById("view-system"),
-    // Salary Categories view & controls
-    navBtnSalaryCategories: document.getElementById("nav-btn-salary-categories"),
-    viewSalaryCategories: document.getElementById("view-salary-categories"),
+
+    // System Sub-Navigation & Sub-Views
+    sysSubtabUsers: document.getElementById("sys-subtab-users"),
+    sysSubtabIncome: document.getElementById("sys-subtab-income"),
+    sysSubtabExpense: document.getElementById("sys-subtab-expense"),
+    sysSubtabSalary: document.getElementById("sys-subtab-salary"),
+    sysSubviewUsers: document.getElementById("sys-subview-users"),
+    sysSubviewIncome: document.getElementById("sys-subview-income"),
+    sysSubviewExpense: document.getElementById("sys-subview-expense"),
+    sysSubviewSalary: document.getElementById("sys-subview-salary"),
+
+    // General Categories (Income & Expense)
+    filterIncomeCatUnit: document.getElementById("filter-income-cat-unit"),
+    filterExpenseCatUnit: document.getElementById("filter-expense-cat-unit"),
+    btnAddIncomeCategory: document.getElementById("btn-add-income-category"),
+    btnAddExpenseCategory: document.getElementById("btn-add-expense-category"),
+    incomeCatLoading: document.getElementById("income-cat-loading"),
+    incomeCatEmpty: document.getElementById("income-cat-empty"),
+    expenseCatLoading: document.getElementById("expense-cat-loading"),
+    expenseCatEmpty: document.getElementById("expense-cat-empty"),
+    incomeCategoryTbody: document.getElementById("income-category-tbody"),
+    expenseCategoryTbody: document.getElementById("expense-category-tbody"),
+
+    // Modal General Category (Add/Edit)
+    modalGeneralCategory: document.getElementById("modal-general-category"),
+    modalGencatTitle: document.getElementById("modal-gencat-title"),
+    formGeneralCategory: document.getElementById("form-general-category"),
+    gencatId: document.getElementById("gencat-id"),
+    gencatType: document.getElementById("gencat-type"),
+    gencatName: document.getElementById("gencat-name"),
+    gencatUnit: document.getElementById("gencat-unit"),
+    gencatActive: document.getElementById("gencat-active"),
+    btnSaveGencat: document.getElementById("btn-save-gencat"),
+
+    // Modal Delete General Category
+    modalGencatDelete: document.getElementById("modal-gencat-delete"),
+    gencatDeleteId: document.getElementById("gencat-delete-id"),
+    gencatDeleteName: document.getElementById("gencat-delete-name"),
+    btnConfirmGencatDelete: document.getElementById("btn-confirm-gencat-delete"),
+
+    // Salary Categories view & controls (in System Subview)
     btnAddSalaryCategory: document.getElementById("btn-add-salary-category"),
+    salaryCatLoading: document.getElementById("salary-cat-loading"),
     salaryCategoryTbody: document.getElementById("salary-category-tbody"),
     modalSalaryCategory: document.getElementById("modal-salary-category"),
     closeSalaryCategoryModal: document.getElementById("close-salary-category-modal"),
     formSalaryCategory: document.getElementById("form-salary-category"),
+    sbCategoryIsEdit: document.getElementById("sb-category-is-edit"),
     inputCategoryCode: document.getElementById("sb-category-code"),
     inputCategoryLabel: document.getElementById("sb-category-label"),
+    inputCategoryType: document.getElementById("sb-category-type"),
     btnSaveSalaryCategory: document.getElementById("btn-save-salary-category"),
     modalSalaryCategoryTitle: document.getElementById("modal-salary-category-title"),
+
+    // Modal Delete Salary Category
+    modalSalaryCatDelete: document.getElementById("modal-salary-cat-delete"),
+    sbCatDeleteCode: document.getElementById("sb-cat-delete-code"),
+    sbCatDeleteLabel: document.getElementById("sb-cat-delete-label"),
+    btnConfirmSbCatDelete: document.getElementById("btn-confirm-sb-cat-delete"),
 
     // Config
     configAlertBanner: document.getElementById("config-alert-banner"),
@@ -1245,10 +1292,10 @@
     if (!DOM.navBtnTransactions || !DOM.navBtnFnbRec) return;
 
     function activateTab(activeBtn, activeView) {
-      [DOM.navBtnTransactions, DOM.navBtnFnbRec, DOM.navBtnSalaryBank, DOM.navBtnSalaryCategories, DOM.navBtnReport, DOM.navBtnSystem].forEach(btn => {
+      [DOM.navBtnTransactions, DOM.navBtnFnbRec, DOM.navBtnSalaryBank, DOM.navBtnReport, DOM.navBtnSystem].forEach(btn => {
         if (btn) btn.classList.remove("active");
       });
-      [DOM.viewTransactions, DOM.viewFnbRec, DOM.viewSalaryBank, DOM.viewSalaryCategories, DOM.viewReport, DOM.viewSystem].forEach(view => {
+      [DOM.viewTransactions, DOM.viewFnbRec, DOM.viewSalaryBank, DOM.viewReport, DOM.viewSystem].forEach(view => {
         if (view) view.classList.add("hidden");
       });
 
@@ -1272,14 +1319,6 @@
       });
     }
 
-    // [FIX] Gắn sự kiện cho tab "Danh mục Lương & CK" (trước đây bị thiếu)
-    if (DOM.navBtnSalaryCategories) {
-      DOM.navBtnSalaryCategories.addEventListener("click", () => {
-        activateTab(DOM.navBtnSalaryCategories, DOM.viewSalaryCategories);
-        loadSalaryCategories();
-      });
-    }
-
     if (DOM.navBtnReport) {
       DOM.navBtnReport.addEventListener("click", () => {
         activateTab(DOM.navBtnReport, DOM.viewReport);
@@ -1290,7 +1329,9 @@
     if (DOM.navBtnSystem) {
       DOM.navBtnSystem.addEventListener("click", () => {
         activateTab(DOM.navBtnSystem, DOM.viewSystem);
+        // Tải dữ liệu ban đầu cho Quản lý hệ thống & danh mục
         loadSystemUsers();
+        loadGeneralCategories();
       });
     }
   }
@@ -2008,17 +2049,18 @@
     `).join("");
   }
 
+  // ================= QUẢN LÝ DANH MỤC LƯƠNG & CHUYỂN KHOẢN (SUBVIEW 4) =================
   function openSalaryCategoryModal(cat = null) {
     if (!DOM.modalSalaryCategory) return;
-    const typeSelect = document.getElementById("sb-category-type");
     AppState.editingSalaryCategoryCode = cat ? cat.code : null;
 
+    if (DOM.sbCategoryIsEdit) DOM.sbCategoryIsEdit.value = cat ? "1" : "0";
     if (DOM.inputCategoryCode) {
       DOM.inputCategoryCode.value = cat ? cat.code : "";
-      DOM.inputCategoryCode.readOnly = !!cat; // Không cho đổi mã vì các khoản chi đang tham chiếu theo mã
+      DOM.inputCategoryCode.readOnly = !!cat; // Không cho đổi mã khi sửa vì các khoản chi tham chiếu theo mã
     }
     if (DOM.inputCategoryLabel) DOM.inputCategoryLabel.value = cat ? cat.label : "";
-    if (typeSelect) typeSelect.value = cat ? cat.expense_type : "salary";
+    if (DOM.inputCategoryType) DOM.inputCategoryType.value = cat ? (cat.expense_type || "bank_transfer") : "bank_transfer";
     if (DOM.modalSalaryCategoryTitle) {
       DOM.modalSalaryCategoryTitle.textContent = cat ? `✏️ Sửa danh mục: ${cat.code}` : "➕ Thêm danh mục chi lương & CK";
     }
@@ -2026,34 +2068,6 @@
   }
 
   function setupSalaryCategoryEvents() {
-    if (!DOM.viewSalaryCategories) return;
-
-    // Chuẩn hóa modal: index.html đặt class "modal hidden" và nằm trong view,
-    // trong khi các modal khác dùng "modal-overlay" + openModal() thêm class "active".
-    if (DOM.modalSalaryCategory) {
-      DOM.modalSalaryCategory.className = "modal-overlay";
-      document.body.appendChild(DOM.modalSalaryCategory);
-    }
-
-    // Bổ sung ô chọn "Loại chi" vào form (form gốc chỉ có Mã + Nhãn)
-    if (DOM.formSalaryCategory && !document.getElementById("sb-category-type")) {
-      const group = document.createElement("div");
-      group.className = "form-group";
-      group.innerHTML = `
-        <label for="sb-category-type">Áp dụng cho loại chi</label>
-        <select id="sb-category-type" class="form-control">
-          <option value="salary">👥 Chi lương</option>
-          <option value="bank_transfer">🏦 Chi chuyển khoản</option>
-          <option value="both">↔️ Dùng chung cả hai</option>
-        </select>`;
-      const anchor = DOM.btnSaveSalaryCategory ? DOM.btnSaveSalaryCategory.closest(".form-group, .modal-footer, div") : null;
-      if (anchor && anchor !== DOM.formSalaryCategory && DOM.formSalaryCategory.contains(anchor)) {
-        anchor.parentNode.insertBefore(group, anchor);
-      } else {
-        DOM.formSalaryCategory.insertBefore(group, DOM.btnSaveSalaryCategory || null);
-      }
-    }
-
     if (DOM.btnAddSalaryCategory) {
       DOM.btnAddSalaryCategory.addEventListener("click", () => {
         if (!window.SystemService.canCreate()) {
@@ -2064,43 +2078,46 @@
       });
     }
 
-    if (DOM.closeSalaryCategoryModal) {
-      DOM.closeSalaryCategoryModal.addEventListener("click", () => closeModal(DOM.modalSalaryCategory));
-    }
-    if (DOM.modalSalaryCategory) {
-      DOM.modalSalaryCategory.addEventListener("click", (e) => {
-        if (e.target === DOM.modalSalaryCategory) closeModal(DOM.modalSalaryCategory);
-      });
-    }
-
     if (DOM.formSalaryCategory) {
       DOM.formSalaryCategory.addEventListener("submit", async (e) => {
         e.preventDefault();
         const isEdit = !!AppState.editingSalaryCategoryCode;
-        const typeSelect = document.getElementById("sb-category-type");
+        const code = (DOM.inputCategoryCode ? DOM.inputCategoryCode.value : "").trim();
+        const label = (DOM.inputCategoryLabel ? DOM.inputCategoryLabel.value : "").trim();
+        const expenseType = DOM.inputCategoryType ? DOM.inputCategoryType.value : "bank_transfer";
+
+        if (!code) {
+          showToast("Vui lòng nhập mã danh mục.", "error");
+          return;
+        }
+        if (!label) {
+          showToast("Vui lòng nhập nhãn hiển thị danh mục.", "error");
+          return;
+        }
+
         const formData = {
-          code: isEdit ? AppState.editingSalaryCategoryCode : DOM.inputCategoryCode.value,
-          label: DOM.inputCategoryLabel.value,
-          expense_type: typeSelect ? typeSelect.value : "bank_transfer"
+          code: code,
+          label: label,
+          expense_type: expenseType
         };
 
         const btn = DOM.btnSaveSalaryCategory;
         if (btn) { btn.disabled = true; btn.textContent = "Đang lưu..."; }
         try {
           await window.SalaryBankExpenseService.saveCategory(formData, isEdit);
-          showToast(isEdit ? "Đã cập nhật danh mục." : "Đã thêm danh mục mới.", "success");
+          showToast(isEdit ? "Đã cập nhật danh mục Lương & CK." : "Đã thêm danh mục Lương & CK mới.", "success");
           closeModal(DOM.modalSalaryCategory);
           await loadSalaryCategories();
         } catch (err) {
           console.error(err);
           showToast(isMissingTableError(err) ? "Chưa tạo bảng salary_bank_categories trên Supabase." : (err.message || "Lỗi lưu danh mục"), "error");
         } finally {
-          if (btn) { btn.disabled = false; btn.textContent = "Lưu"; }
+          if (btn) { btn.disabled = false; btn.textContent = "💾 Lưu Danh Mục"; }
         }
       });
     }
 
-    // Sửa / Xóa trong bảng (event delegation)
+    // Xử lý nút Sửa / Xóa trong bảng danh mục lương
     if (DOM.salaryCategoryTbody) {
       DOM.salaryCategoryTbody.addEventListener("click", async (e) => {
         const btn = e.target.closest("button[data-cat-action]");
@@ -2120,18 +2137,439 @@
             showToast("Tài khoản của bạn không có quyền Xóa dữ liệu.", "warning");
             return;
           }
-          if (!confirm(`Xóa danh mục "${cat.label}" (${cat.code})?`)) return;
-          try {
-            await window.SalaryBankExpenseService.deleteCategory(code);
-            showToast("Đã xóa danh mục.", "success");
-            await loadSalaryCategories();
-          } catch (err) {
-            console.error(err);
-            showToast(err.message || "Lỗi xóa danh mục", "error");
+          // Mở modal xóa
+          if (DOM.modalSalaryCatDelete) {
+            if (DOM.sbCatDeleteCode) DOM.sbCatDeleteCode.value = code;
+            if (DOM.sbCatDeleteLabel) DOM.sbCatDeleteLabel.textContent = `"${cat.label}" (${cat.code})`;
+            openModal(DOM.modalSalaryCatDelete);
+          } else {
+            if (!confirm(`Xóa danh mục "${cat.label}" (${cat.code})?`)) return;
+            try {
+              await window.SalaryBankExpenseService.deleteCategory(code);
+              showToast("Đã xóa danh mục.", "success");
+              await loadSalaryCategories();
+            } catch (err) {
+              console.error(err);
+              showToast(err.message || "Lỗi xóa danh mục", "error");
+            }
           }
         }
       });
     }
+
+    if (DOM.btnConfirmSbCatDelete) {
+      DOM.btnConfirmSbCatDelete.addEventListener("click", async () => {
+        const code = DOM.sbCatDeleteCode ? DOM.sbCatDeleteCode.value : null;
+        if (!code) return;
+
+        DOM.btnConfirmSbCatDelete.disabled = true;
+        DOM.btnConfirmSbCatDelete.textContent = "Đang xóa...";
+        try {
+          await window.SalaryBankExpenseService.deleteCategory(code);
+          showToast("Đã xóa danh mục Lương & CK thành công.", "success");
+          closeModal(DOM.modalSalaryCatDelete);
+          await loadSalaryCategories();
+        } catch (err) {
+          console.error(err);
+          showToast(err.message || "Lỗi khi xóa danh mục", "error");
+        } finally {
+          DOM.btnConfirmSbCatDelete.disabled = false;
+          DOM.btnConfirmSbCatDelete.textContent = "Xóa danh mục";
+        }
+      });
+    }
+  }
+
+  // ================= QUẢN LÝ DANH MỤC THU & CHI SỔ CHUNG (SUBVIEWS 2 & 3) =================
+  let currentEditingGeneralCategory = null;
+
+  async function loadGeneralCategories(type = null) {
+    if (DOM.incomeCatLoading && (!type || type === "income")) DOM.incomeCatLoading.classList.remove("hidden");
+    if (DOM.expenseCatLoading && (!type || type === "expense")) DOM.expenseCatLoading.classList.remove("hidden");
+
+    try {
+      // Tải tất cả danh mục thu/chi (bao gồm cả mảng và trạng thái inactive)
+      const list = await window.TransactionService.getCategories(null, null, true);
+      AppState.categories = list;
+
+      renderGeneralCategoryTables();
+      // Đồng bộ lại dropdown trong form Thêm giao dịch mới và bộ lọc
+      populateCategoryDropdowns();
+    } catch (err) {
+      console.error("Lỗi khi tải danh mục thu/chi:", err);
+      showToast("Không thể tải danh mục: " + (err.message || "Lỗi kết nối Supabase"), "error");
+    } finally {
+      if (DOM.incomeCatLoading) DOM.incomeCatLoading.classList.add("hidden");
+      if (DOM.expenseCatLoading) DOM.expenseCatLoading.classList.add("hidden");
+    }
+  }
+
+  function renderGeneralCategoryTables() {
+    renderIncomeCategoryTable();
+    renderExpenseCategoryTable();
+    updateGeneralCategoryUnitFilters();
+  }
+
+  function updateGeneralCategoryUnitFilters() {
+    const units = AppState.businessUnits || [];
+
+    [DOM.filterIncomeCatUnit, DOM.filterExpenseCatUnit, DOM.gencatUnit].forEach(select => {
+      if (!select) return;
+      const curVal = select.value;
+      const isModal = select === DOM.gencatUnit;
+
+      select.innerHTML = isModal 
+        ? '<option value="">🌐 Áp dụng chung cho tất cả các mảng</option>'
+        : '<option value="all">Tất cả mảng hoạt động</option><option value="general">🌐 Dùng chung mọi mảng</option>';
+
+      units.forEach(u => {
+        const opt = document.createElement("option");
+        opt.value = u.id;
+        opt.textContent = `${u.code === 'SON_MAI' ? '🎨' : u.code === 'FNB' ? '☕' : '🏢'} ${u.name}`;
+        select.appendChild(opt);
+      });
+
+      if (curVal !== undefined && curVal !== null) {
+        select.value = curVal;
+      }
+    });
+  }
+
+  function renderIncomeCategoryTable() {
+    if (!DOM.incomeCategoryTbody) return;
+    const filterVal = DOM.filterIncomeCatUnit ? DOM.filterIncomeCatUnit.value : "all";
+
+    let list = (AppState.categories || []).filter(c => c.transaction_type === "income");
+
+    if (filterVal === "general") {
+      list = list.filter(c => !c.business_unit_id);
+    } else if (filterVal !== "all") {
+      list = list.filter(c => c.business_unit_id === Number(filterVal));
+    }
+
+    if (list.length === 0) {
+      if (DOM.incomeCatEmpty) DOM.incomeCatEmpty.classList.remove("hidden");
+      DOM.incomeCategoryTbody.innerHTML = "";
+      return;
+    }
+
+    if (DOM.incomeCatEmpty) DOM.incomeCatEmpty.classList.add("hidden");
+
+    const canEdit = window.SystemService.canEdit();
+    const canDelete = window.SystemService.canDelete();
+
+    DOM.incomeCategoryTbody.innerHTML = list.map((c, idx) => {
+      const bu = c.business_units;
+      let unitBadge = '<span class="badge badge-neutral">🌐 Dùng chung</span>';
+      if (bu) {
+        if (bu.code === "SON_MAI") unitBadge = '<span class="badge badge-sonmai">🎨 Sơn Mài</span>';
+        else if (bu.code === "FNB") unitBadge = '<span class="badge badge-fnb">☕ F&B</span>';
+        else if (bu.code === "VAN_PHONG") unitBadge = '<span class="badge badge-office">🏢 Văn phòng</span>';
+        else unitBadge = `<span class="badge badge-neutral">${escapeHtml(bu.name)}</span>`;
+      }
+
+      const statusBadge = c.is_active !== false 
+        ? '<span class="badge badge-matched">Đang dùng</span>' 
+        : '<span class="badge badge-neutral">Tạm dừng</span>';
+
+      return `
+        <tr>
+          <td style="text-align: center; color: var(--text-muted); font-size: 0.85rem;">${idx + 1}</td>
+          <td>
+            <strong style="color: var(--text-main); font-size: 0.92rem;">${escapeHtml(c.name)}</strong>
+          </td>
+          <td>${unitBadge}</td>
+          <td style="text-align: center;">${statusBadge}</td>
+          <td style="text-align: center; white-space: nowrap;">
+            ${canEdit ? `<button type="button" class="btn btn-outline btn-sm btn-edit-gencat" data-id="${c.id}" data-type="income" title="Chỉnh sửa danh mục">✏️ Sửa</button>` : ""}
+            ${canDelete ? `<button type="button" class="btn btn-outline btn-sm btn-delete-gencat" data-id="${c.id}" data-name="${escapeHtml(c.name)}" title="Xóa danh mục">🗑️ Xóa</button>` : ""}
+          </td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  function renderExpenseCategoryTable() {
+    if (!DOM.expenseCategoryTbody) return;
+    const filterVal = DOM.filterExpenseCatUnit ? DOM.filterExpenseCatUnit.value : "all";
+
+    let list = (AppState.categories || []).filter(c => c.transaction_type === "expense");
+
+    if (filterVal === "general") {
+      list = list.filter(c => !c.business_unit_id);
+    } else if (filterVal !== "all") {
+      list = list.filter(c => c.business_unit_id === Number(filterVal));
+    }
+
+    if (list.length === 0) {
+      if (DOM.expenseCatEmpty) DOM.expenseCatEmpty.classList.remove("hidden");
+      DOM.expenseCategoryTbody.innerHTML = "";
+      return;
+    }
+
+    if (DOM.expenseCatEmpty) DOM.expenseCatEmpty.classList.add("hidden");
+
+    const canEdit = window.SystemService.canEdit();
+    const canDelete = window.SystemService.canDelete();
+
+    DOM.expenseCategoryTbody.innerHTML = list.map((c, idx) => {
+      const bu = c.business_units;
+      let unitBadge = '<span class="badge badge-neutral">🌐 Dùng chung</span>';
+      if (bu) {
+        if (bu.code === "SON_MAI") unitBadge = '<span class="badge badge-sonmai">🎨 Sơn Mài</span>';
+        else if (bu.code === "FNB") unitBadge = '<span class="badge badge-fnb">☕ F&B</span>';
+        else if (bu.code === "VAN_PHONG") unitBadge = '<span class="badge badge-office">🏢 Văn phòng</span>';
+        else unitBadge = `<span class="badge badge-neutral">${escapeHtml(bu.name)}</span>`;
+      }
+
+      const statusBadge = c.is_active !== false 
+        ? '<span class="badge badge-matched">Đang dùng</span>' 
+        : '<span class="badge badge-neutral">Tạm dừng</span>';
+
+      return `
+        <tr>
+          <td style="text-align: center; color: var(--text-muted); font-size: 0.85rem;">${idx + 1}</td>
+          <td>
+            <strong style="color: var(--text-main); font-size: 0.92rem;">${escapeHtml(c.name)}</strong>
+          </td>
+          <td>${unitBadge}</td>
+          <td style="text-align: center;">${statusBadge}</td>
+          <td style="text-align: center; white-space: nowrap;">
+            ${canEdit ? `<button type="button" class="btn btn-outline btn-sm btn-edit-gencat" data-id="${c.id}" data-type="expense" title="Chỉnh sửa danh mục">✏️ Sửa</button>` : ""}
+            ${canDelete ? `<button type="button" class="btn btn-outline btn-sm btn-delete-gencat" data-id="${c.id}" data-name="${escapeHtml(c.name)}" title="Xóa danh mục">🗑️ Xóa</button>` : ""}
+          </td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  function openGeneralCategoryModal(type, category = null) {
+    if (!DOM.modalGeneralCategory) return;
+    currentEditingGeneralCategory = category;
+
+    const isEdit = !!category;
+    const catType = category ? category.transaction_type : (type || "income");
+
+    if (DOM.gencatId) DOM.gencatId.value = category ? category.id : "";
+    if (DOM.gencatType) DOM.gencatType.value = catType;
+    if (DOM.gencatName) DOM.gencatName.value = category ? category.name : "";
+    if (DOM.gencatUnit) DOM.gencatUnit.value = category ? (category.business_unit_id || "") : "";
+    if (DOM.gencatActive) DOM.gencatActive.checked = category ? (category.is_active !== false) : true;
+
+    if (DOM.modalGencatTitle) {
+      if (isEdit) {
+        DOM.modalGencatTitle.textContent = `✏️ Sửa Danh Mục ${catType === "income" ? "Thu" : "Chi"}`;
+      } else {
+        DOM.modalGencatTitle.textContent = catType === "income" ? "➕ Thêm Danh Mục Thu Mới" : "➕ Thêm Danh Mục Chi Mới";
+      }
+    }
+
+    openModal(DOM.modalGeneralCategory);
+  }
+
+  function setupGeneralCategoryEvents() {
+    // 1. Lọc theo mảng kinh doanh
+    if (DOM.filterIncomeCatUnit) {
+      DOM.filterIncomeCatUnit.addEventListener("change", () => renderIncomeCategoryTable());
+    }
+    if (DOM.filterExpenseCatUnit) {
+      DOM.filterExpenseCatUnit.addEventListener("change", () => renderExpenseCategoryTable());
+    }
+
+    // 2. Nút Thêm danh mục Thu / Chi
+    if (DOM.btnAddIncomeCategory) {
+      DOM.btnAddIncomeCategory.addEventListener("click", () => {
+        if (!window.SystemService.canCreate()) {
+          showToast("Tài khoản của bạn không có quyền Thêm dữ liệu.", "warning");
+          return;
+        }
+        openGeneralCategoryModal("income", null);
+      });
+    }
+
+    if (DOM.btnAddExpenseCategory) {
+      DOM.btnAddExpenseCategory.addEventListener("click", () => {
+        if (!window.SystemService.canCreate()) {
+          showToast("Tài khoản của bạn không có quyền Thêm dữ liệu.", "warning");
+          return;
+        }
+        openGeneralCategoryModal("expense", null);
+      });
+    }
+
+    // 3. Sự kiện bấm Sửa / Xóa trong bảng danh mục Thu
+    if (DOM.incomeCategoryTbody) {
+      DOM.incomeCategoryTbody.addEventListener("click", (e) => {
+        const editBtn = e.target.closest(".btn-edit-gencat");
+        if (editBtn) {
+          if (!window.SystemService.canEdit()) {
+            showToast("Tài khoản của bạn không có quyền Chỉnh sửa dữ liệu.", "warning");
+            return;
+          }
+          const id = Number(editBtn.dataset.id);
+          const cat = (AppState.categories || []).find(c => c.id === id);
+          if (cat) openGeneralCategoryModal("income", cat);
+          return;
+        }
+
+        const deleteBtn = e.target.closest(".btn-delete-gencat");
+        if (deleteBtn) {
+          if (!window.SystemService.canDelete()) {
+            showToast("Tài khoản của bạn không có quyền Xóa dữ liệu.", "warning");
+            return;
+          }
+          const id = Number(deleteBtn.dataset.id);
+          const name = deleteBtn.dataset.name || "";
+          openDeleteGeneralCategoryModal(id, name);
+        }
+      });
+    }
+
+    // 4. Sự kiện bấm Sửa / Xóa trong bảng danh mục Chi
+    if (DOM.expenseCategoryTbody) {
+      DOM.expenseCategoryTbody.addEventListener("click", (e) => {
+        const editBtn = e.target.closest(".btn-edit-gencat");
+        if (editBtn) {
+          if (!window.SystemService.canEdit()) {
+            showToast("Tài khoản của bạn không có quyền Chỉnh sửa dữ liệu.", "warning");
+            return;
+          }
+          const id = Number(editBtn.dataset.id);
+          const cat = (AppState.categories || []).find(c => c.id === id);
+          if (cat) openGeneralCategoryModal("expense", cat);
+          return;
+        }
+
+        const deleteBtn = e.target.closest(".btn-delete-gencat");
+        if (deleteBtn) {
+          if (!window.SystemService.canDelete()) {
+            showToast("Tài khoản của bạn không có quyền Xóa dữ liệu.", "warning");
+            return;
+          }
+          const id = Number(deleteBtn.dataset.id);
+          const name = deleteBtn.dataset.name || "";
+          openDeleteGeneralCategoryModal(id, name);
+        }
+      });
+    }
+
+    // 5. Submit Form Thêm / Sửa Danh mục Sổ chung
+    if (DOM.formGeneralCategory) {
+      DOM.formGeneralCategory.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const id = DOM.gencatId ? DOM.gencatId.value : "";
+        const type = DOM.gencatType ? DOM.gencatType.value : "income";
+        const name = (DOM.gencatName ? DOM.gencatName.value : "").trim();
+        const unitId = DOM.gencatUnit && DOM.gencatUnit.value ? DOM.gencatUnit.value : null;
+        const isActive = DOM.gencatActive ? DOM.gencatActive.checked : true;
+
+        if (!name) {
+          showToast("Vui lòng nhập tên danh mục.", "error");
+          return;
+        }
+
+        const payload = {
+          name,
+          transaction_type: type,
+          business_unit_id: unitId,
+          is_active: isActive
+        };
+
+        const btn = DOM.btnSaveGencat;
+        if (btn) { btn.disabled = true; btn.textContent = "Đang lưu..."; }
+
+        try {
+          if (id) {
+            await window.TransactionService.updateCategory(Number(id), payload);
+            showToast(`Đã cập nhật danh mục "${name}" thành công!`, "success");
+          } else {
+            await window.TransactionService.createCategory(payload);
+            showToast(`Đã thêm mới danh mục "${name}" thành công!`, "success");
+          }
+          closeModal(DOM.modalGeneralCategory);
+          await loadGeneralCategories();
+        } catch (err) {
+          console.error("Lỗi khi lưu danh mục:", err);
+          showToast("Lỗi lưu danh mục: " + (err.message || "Vui lòng thử lại"), "error");
+        } finally {
+          if (btn) { btn.disabled = false; btn.textContent = "💾 Lưu Danh Mục"; }
+        }
+      });
+    }
+
+    // 6. Xử lý Modal Xác nhận Xóa Danh mục
+    if (DOM.btnConfirmGencatDelete) {
+      DOM.btnConfirmGencatDelete.addEventListener("click", async () => {
+        const id = DOM.gencatDeleteId ? Number(DOM.gencatDeleteId.value) : null;
+        if (!id) return;
+
+        DOM.btnConfirmGencatDelete.disabled = true;
+        DOM.btnConfirmGencatDelete.textContent = "Đang xóa...";
+
+        try {
+          await window.TransactionService.deleteCategory(id);
+          showToast("Đã xóa danh mục thành công!", "success");
+          closeModal(DOM.modalGencatDelete);
+          await loadGeneralCategories();
+        } catch (err) {
+          console.error("Lỗi xóa danh mục:", err);
+          showToast("Không thể xóa: " + (err.message || "Lỗi database"), "error");
+        } finally {
+          DOM.btnConfirmGencatDelete.disabled = false;
+          DOM.btnConfirmGencatDelete.textContent = "Xóa danh mục";
+        }
+      });
+    }
+  }
+
+  function openDeleteGeneralCategoryModal(id, name) {
+    if (!DOM.modalGencatDelete) return;
+    if (DOM.gencatDeleteId) DOM.gencatDeleteId.value = id;
+    if (DOM.gencatDeleteName) DOM.gencatDeleteName.textContent = name;
+    openModal(DOM.modalGencatDelete);
+  }
+
+  // ================= SUB-NAVIGATION CHUYỂN TABS TRONG QUẢN LÝ HỆ THỐNG =================
+  function setupSystemSubnavEvents() {
+    const subtabs = [
+      { btn: DOM.sysSubtabUsers, view: DOM.sysSubviewUsers, onActivate: () => loadSystemUsers() },
+      { btn: DOM.sysSubtabIncome, view: DOM.sysSubviewIncome, onActivate: () => loadGeneralCategories("income") },
+      { btn: DOM.sysSubtabExpense, view: DOM.sysSubviewExpense, onActivate: () => loadGeneralCategories("expense") },
+      { btn: DOM.sysSubtabSalary, view: DOM.sysSubviewSalary, onActivate: () => loadSalaryCategories() }
+    ];
+
+    function activateSubtab(targetBtn, targetView, callback) {
+      subtabs.forEach(tab => {
+        if (tab.btn) {
+          tab.btn.classList.remove("btn-primary");
+          tab.btn.classList.add("btn-outline");
+        }
+        if (tab.view) {
+          tab.view.classList.add("hidden");
+        }
+      });
+
+      if (targetBtn) {
+        targetBtn.classList.remove("btn-outline");
+        targetBtn.classList.add("btn-primary");
+      }
+      if (targetView) {
+        targetView.classList.remove("hidden");
+      }
+
+      if (typeof callback === "function") {
+        callback();
+      }
+    }
+
+    subtabs.forEach(tab => {
+      if (tab.btn) {
+        tab.btn.addEventListener("click", () => {
+          activateSubtab(tab.btn, tab.view, tab.onActivate);
+        });
+      }
+    });
   }
 
   function populateInlineSbForm(record) {
@@ -3096,6 +3534,8 @@
     setupFnbReconciliationEvents();
     setupSalaryBankEvents();
     setupSalaryCategoryEvents();
+    setupGeneralCategoryEvents();
+    setupSystemSubnavEvents();
     setupExcelImportEvents();
     setupSystemEvents();
     setupReportEvents();

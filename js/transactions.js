@@ -23,14 +23,17 @@ const TransactionService = {
   },
 
   // 2. LẤY DANH SÁCH DANH MỤC THU/CHI
-  async getCategories(unitId = null, transactionType = null) {
+  async getCategories(unitId = null, transactionType = null, includeInactive = false) {
     const client = window.SupabaseConfig.getClient();
     if (!client) throw new Error("Chưa kết nối Supabase");
 
     let query = client
       .from("categories")
-      .select("id, name, transaction_type, business_unit_id, is_active")
-      .eq("is_active", true);
+      .select("id, name, transaction_type, business_unit_id, is_active, created_by, business_units ( id, code, name )");
+
+    if (!includeInactive) {
+      query = query.eq("is_active", true);
+    }
 
     if (unitId) {
       query = query.or(`business_unit_id.eq.${unitId},business_unit_id.is.null`);
@@ -47,6 +50,95 @@ const TransactionService = {
       throw error;
     }
     return data || [];
+  },
+
+  // 2.1 TẠO MỚI DANH MỤC THU / CHI
+  async createCategory(categoryData) {
+    const client = window.SupabaseConfig.getClient();
+    if (!client) throw new Error("Chưa kết nối Supabase");
+
+    if (!categoryData.name || !categoryData.name.trim()) {
+      throw new Error("Tên danh mục không được để trống.");
+    }
+    if (!categoryData.transaction_type || !["income", "expense"].includes(categoryData.transaction_type)) {
+      throw new Error("Loại danh mục phải là Thu hoặc Chi.");
+    }
+
+    const payload = {
+      name: categoryData.name.trim(),
+      transaction_type: categoryData.transaction_type,
+      business_unit_id: categoryData.business_unit_id ? Number(categoryData.business_unit_id) : null,
+      is_active: categoryData.is_active !== false
+    };
+
+    const { data, error } = await client
+      .from("categories")
+      .insert([payload])
+      .select("id, name, transaction_type, business_unit_id, is_active, business_units ( id, code, name )")
+      .single();
+
+    if (error) {
+      console.error("Lỗi khi tạo danh mục:", error);
+      throw error;
+    }
+    return data;
+  },
+
+  // 2.2 CẬP NHẬT DANH MỤC THU / CHI
+  async updateCategory(id, categoryData) {
+    const client = window.SupabaseConfig.getClient();
+    if (!client) throw new Error("Chưa kết nối Supabase");
+
+    if (!categoryData.name || !categoryData.name.trim()) {
+      throw new Error("Tên danh mục không được để trống.");
+    }
+
+    const payload = {
+      name: categoryData.name.trim(),
+      transaction_type: categoryData.transaction_type,
+      business_unit_id: categoryData.business_unit_id ? Number(categoryData.business_unit_id) : null,
+      is_active: categoryData.is_active !== false
+    };
+
+    const { data, error } = await client
+      .from("categories")
+      .update(payload)
+      .eq("id", id)
+      .select("id, name, transaction_type, business_unit_id, is_active, business_units ( id, code, name )")
+      .single();
+
+    if (error) {
+      console.error("Lỗi khi cập nhật danh mục:", error);
+      throw error;
+    }
+    return data;
+  },
+
+  // 2.3 XÓA DANH MỤC THU / CHI
+  async deleteCategory(id) {
+    const client = window.SupabaseConfig.getClient();
+    if (!client) throw new Error("Chưa kết nối Supabase");
+
+    // Kiểm tra xem đã có giao dịch nào dùng danh mục này chưa
+    const { count, error: countErr } = await client
+      .from("transactions")
+      .select("id", { count: "exact", head: true })
+      .eq("category_id", id);
+
+    if (!countErr && count > 0) {
+      throw new Error(`Không thể xóa danh mục này vì đang có ${count} giao dịch liên kết. Bạn có thể chỉnh sửa tên danh mục nếu cần.`);
+    }
+
+    const { error } = await client
+      .from("categories")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("Lỗi khi xóa danh mục:", error);
+      throw error;
+    }
+    return true;
   },
 
   // 3. LẤY DANH SÁCH TÀI KHOẢN TIỀN/QUỸ

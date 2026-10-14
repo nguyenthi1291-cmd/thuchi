@@ -43,9 +43,6 @@
         <button id="nav-btn-salary-bank" class="nav-tab-btn" type="button">
           💳 Chi Lương & Chuyển Khoản
         </button>
-        <button id="nav-btn-salary-categories" class="nav-tab-btn" type="button">
-          📂 Danh mục Lương & CK
-        </button>
         <button id="nav-btn-report" class="nav-tab-btn" type="button">
           📊 Báo Cáo Tổng Quan
         </button>
@@ -896,50 +893,6 @@
 
       </div>
       <!-- HẾT VIEW 3: CHI PHÍ LƯƠNG & CHUYỂN KHOẢN -->
-      <!-- ================= VIEW 4: QUẢN LÝ DANH MỤC KHOẢN CHI LƯƠNG & CHUYỂN KHOẢN ================= -->
-      <div id="view-salary-categories" class="app-view hidden">
-        <div class="card" style="margin-bottom: 1.5rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h3>Quản lý Danh mục Chi Lương & Chuyển Khoản</h3>
-            <button id="btn-add-salary-category" class="btn btn-primary" style="background: #7c3aed;">
-              + Thêm danh mục
-            </button>
-          </div>
-        </div>
-        <div class="table-panel">
-          <table class="custom-table">
-            <thead>
-              <tr>
-                <th style="width: 150px;">Mã</th>
-                <th>Nhãn</th>
-                <th style="width: 150px;">Người tạo</th>
-                <th style="width: 120px; text-align: center;">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody id="salary-category-tbody">
-              <!-- Rendered by JS -->
-            </tbody>
-          </table>
-        </div>
-        <!-- Modal for Add / Edit -->
-        <div id="modal-salary-category" class="modal hidden">
-          <div class="modal-content">
-            <span class="close" id="close-salary-category-modal">&times;</span>
-            <h4 id="modal-salary-category-title">Thêm danh mục</h4>
-            <form id="form-salary-category">
-              <div class="form-group">
-                <label for="sb-category-code">Mã danh mục</label>
-                <input type="text" id="sb-category-code" class="form-control" required />
-              </div>
-              <div class="form-group">
-                <label for="sb-category-label">Nhãn</label>
-                <input type="text" id="sb-category-label" class="form-control" required />
-              </div>
-              <button type="submit" class="btn btn-primary" id="btn-save-salary-category">Lưu</button>
-            </form>
-          </div>
-        </div>
-      </div>
 
       <!-- ================= VIEW 5: BÁO CÁO THU - CHI TỔNG QUAN TOÀN HỆ THỐNG ================= -->
       <div id="view-report" class="app-view hidden">
@@ -1278,92 +1231,249 @@
           </div>
         </div>
 
-        <!-- 4 THẺ KPI HỆ THỐNG -->
-        <div class="dashboard-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 1.5rem;">
-          <div class="kpi-card">
-            <div class="kpi-header">
-              <span class="kpi-title">Tổng Người Dùng</span>
-              <span class="kpi-icon icon-count">👥</span>
+        <!-- SUB-NAV TABS QUẢN LÝ HỆ THỐNG VÀ DANH MỤC TẬP TRUNG -->
+        <div class="system-sub-tabs" style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.75rem; flex-wrap: wrap;">
+          <button id="sys-subtab-users" class="btn btn-sm btn-primary sys-subtab-btn" type="button">
+            👥 Người Dùng &amp; Phân Quyền
+          </button>
+          <button id="sys-subtab-income" class="btn btn-sm btn-outline sys-subtab-btn" type="button">
+            📈 Danh Mục Thu (Sổ Chung)
+          </button>
+          <button id="sys-subtab-expense" class="btn btn-sm btn-outline sys-subtab-btn" type="button">
+            📉 Danh Mục Chi (Sổ Chung)
+          </button>
+          <button id="sys-subtab-salary" class="btn btn-sm btn-outline sys-subtab-btn" type="button">
+            💳 Danh Mục Lương &amp; CK
+          </button>
+        </div>
+
+        <!-- ================= SUBVIEW 1: PHÂN QUYỀN NGƯỜI DÙNG ================= -->
+        <div id="sys-subview-users" class="sys-subview">
+          <!-- 4 THẺ KPI HỆ THỐNG -->
+          <div class="dashboard-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 1.5rem;">
+            <div class="kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-title">Tổng Người Dùng</span>
+                <span class="kpi-icon icon-count">👥</span>
+              </div>
+              <div id="sys-kpi-total-users" class="kpi-value">0</div>
+              <div class="kpi-footer">Tài khoản trong hệ thống</div>
             </div>
-            <div id="sys-kpi-total-users" class="kpi-value">0</div>
-            <div class="kpi-footer">Tài khoản trong hệ thống</div>
+
+            <div class="kpi-card" style="border-top: 3px solid #dc2626;">
+              <div class="kpi-header">
+                <span class="kpi-title">Quản Trị Viên (Admin)</span>
+                <span class="badge badge-danger">ADMIN</span>
+              </div>
+              <div id="sys-kpi-admin-count" class="kpi-value">0</div>
+              <div class="kpi-footer">Toàn quyền hệ thống</div>
+            </div>
+
+            <div class="kpi-card" style="border-top: 3px solid #2563eb;">
+              <div class="kpi-header">
+                <span class="kpi-title">Quản Lý &amp; Kế Toán</span>
+                <span class="badge badge-primary">MANAGER</span>
+              </div>
+              <div id="sys-kpi-manager-count" class="kpi-value">0</div>
+              <div class="kpi-footer">Quyền duyệt &amp; sửa chi phí</div>
+            </div>
+
+            <div class="kpi-card" style="border-top: 3px solid #16a34a;">
+              <div class="kpi-header">
+                <span class="kpi-title">Đang Hoạt Động</span>
+                <span class="badge badge-matched">HOẠT ĐỘNG</span>
+              </div>
+              <div id="sys-kpi-active-count" class="kpi-value text-positive">0</div>
+              <div class="kpi-footer">Tài khoản được cấp phép</div>
+            </div>
           </div>
 
-          <div class="kpi-card" style="border-top: 3px solid #dc2626;">
-            <div class="kpi-header">
-              <span class="kpi-title">Quản Trị Viên (Admin)</span>
-              <span class="badge badge-danger">ADMIN</span>
+          <!-- BẢNG DANH SÁCH NGƯỜI DÙNG & PHÂN QUYỀN -->
+          <div class="table-panel">
+            <div class="table-header">
+              <div class="table-title-area">
+                <h3>Danh Sách Người Dùng &amp; Phân Quyền Chi Tiết</h3>
+                <span>Quản lý phân quyền truy cập trang và thao tác (Thêm mới, Chỉnh sửa, Xóa, Import)</span>
+              </div>
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <button id="btn-add-user" class="btn btn-primary btn-sm" title="Tạo tài khoản người dùng mới">
+                  ➕ Tạo tài khoản mới
+                </button>
+                <button id="btn-refresh-users" class="btn btn-outline btn-sm" title="Làm mới danh sách">
+                  🔄 Làm mới
+                </button>
+              </div>
             </div>
-            <div id="sys-kpi-admin-count" class="kpi-value">0</div>
-            <div class="kpi-footer">Toàn quyền hệ thống</div>
-          </div>
 
-          <div class="kpi-card" style="border-top: 3px solid #2563eb;">
-            <div class="kpi-header">
-              <span class="kpi-title">Quản Lý & Kế Toán</span>
-              <span class="badge badge-primary">MANAGER</span>
+            <!-- Loading -->
+            <div id="sys-table-loading" class="state-container hidden">
+              <div class="spinner"></div>
+              <div class="state-title">Đang tải danh sách người dùng từ Supabase...</div>
             </div>
-            <div id="sys-kpi-manager-count" class="kpi-value">0</div>
-            <div class="kpi-footer">Quyền duyệt & sửa chi phí</div>
-          </div>
 
-          <div class="kpi-card" style="border-top: 3px solid #16a34a;">
-            <div class="kpi-header">
-              <span class="kpi-title">Đang Hoạt Động</span>
-              <span class="badge badge-matched">HOẠT ĐỘNG</span>
+            <!-- Empty -->
+            <div id="sys-table-empty" class="state-container hidden">
+              <div class="state-icon">👥</div>
+              <div class="state-title">Chưa có hồ sơ người dùng nào</div>
+              <p>Hồ sơ người dùng sẽ tự động tạo khi có thành viên đăng ký tài khoản vào hệ thống.</p>
             </div>
-            <div id="sys-kpi-active-count" class="kpi-value text-positive">0</div>
-            <div class="kpi-footer">Tài khoản được cấp phép</div>
+
+            <!-- Table -->
+            <div id="sys-table-wrapper" class="table-responsive">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th style="width: 200px;">Người dùng</th>
+                    <th style="width: 130px; text-align: center;">Vai trò</th>
+                    <th style="width: 220px;">Trang được truy cập</th>
+                    <th style="width: 220px;">Quyền thao tác dữ liệu</th>
+                    <th style="width: 120px; text-align: center;">Trạng thái</th>
+                    <th style="width: 120px; text-align: center;">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="sys-users-tbody">
+                  <!-- Render bằng JavaScript -->
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
-        <!-- BẢNG DANH SÁCH NGƯỜI DÙNG & PHÂN QUYỀN -->
-        <div class="table-panel">
-          <div class="table-header">
-            <div class="table-title-area">
-              <h3>Danh Sách Người Dùng & Phân Quyền Chi Tiết</h3>
-              <span>Quản lý phân quyền truy cập trang và thao tác (Thêm mới, Chỉnh sửa, Xóa, Import)</span>
+        <!-- ================= SUBVIEW 2: QUẢN LÝ DANH MỤC THU ================= -->
+        <div id="sys-subview-income" class="sys-subview hidden">
+          <div class="table-panel">
+            <div class="table-header">
+              <div class="table-title-area">
+                <h3>📈 Quản Lý Danh Mục Thu (Sổ Thu Chi Chung)</h3>
+                <span>Danh mục nguồn thu của Sơn Mài, F&amp;B, Văn phòng hoặc Áp dụng chung</span>
+              </div>
+              <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                <select id="filter-income-cat-unit" class="form-control" style="width: auto; padding: 0.35rem 0.65rem; font-size: 0.82rem;">
+                  <option value="all">Tất cả mảng hoạt động</option>
+                </select>
+                <button id="btn-add-income-category" class="btn btn-primary btn-sm" title="Thêm danh mục Thu">
+                  ➕ Thêm danh mục Thu
+                </button>
+              </div>
             </div>
-            <div style="display: flex; gap: 0.5rem; align-items: center;">
-              <button id="btn-add-user" class="btn btn-primary btn-sm" title="Tạo tài khoản người dùng mới">
-                ➕ Tạo tài khoản mới
-              </button>
-              <button id="btn-refresh-users" class="btn btn-outline btn-sm" title="Làm mới danh sách">
-                🔄 Làm mới
-              </button>
+
+            <!-- Loading -->
+            <div id="income-cat-loading" class="state-container hidden">
+              <div class="spinner"></div>
+              <div class="state-title">Đang tải danh mục Thu...</div>
+            </div>
+
+            <!-- Empty -->
+            <div id="income-cat-empty" class="state-container hidden">
+              <div class="state-icon">📈</div>
+              <div class="state-title">Chưa có danh mục Thu nào</div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th style="width: 60px; text-align: center;">STT</th>
+                    <th>Tên Danh Mục Thu</th>
+                    <th style="width: 180px;">Áp Dụng Cho Mảng</th>
+                    <th style="width: 120px; text-align: center;">Trạng Thái</th>
+                    <th style="width: 140px; text-align: center;">Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody id="income-category-tbody">
+                  <!-- Render bằng JS -->
+                </tbody>
+              </table>
             </div>
           </div>
+        </div>
 
-          <!-- Loading -->
-          <div id="sys-table-loading" class="state-container hidden">
-            <div class="spinner"></div>
-            <div class="state-title">Đang tải danh sách người dùng từ Supabase...</div>
+        <!-- ================= SUBVIEW 3: QUẢN LÝ DANH MỤC CHI ================= -->
+        <div id="sys-subview-expense" class="sys-subview hidden">
+          <div class="table-panel">
+            <div class="table-header">
+              <div class="table-title-area">
+                <h3>📉 Quản Lý Danh Mục Chi (Sổ Thu Chi Chung)</h3>
+                <span>Danh mục các khoản chi phí phát sinh theo mảng kinh doanh và dùng chung</span>
+              </div>
+              <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                <select id="filter-expense-cat-unit" class="form-control" style="width: auto; padding: 0.35rem 0.65rem; font-size: 0.82rem;">
+                  <option value="all">Tất cả mảng hoạt động</option>
+                </select>
+                <button id="btn-add-expense-category" class="btn btn-primary btn-sm" title="Thêm danh mục Chi">
+                  ➕ Thêm danh mục Chi
+                </button>
+              </div>
+            </div>
+
+            <!-- Loading -->
+            <div id="expense-cat-loading" class="state-container hidden">
+              <div class="spinner"></div>
+              <div class="state-title">Đang tải danh mục Chi...</div>
+            </div>
+
+            <!-- Empty -->
+            <div id="expense-cat-empty" class="state-container hidden">
+              <div class="state-icon">📉</div>
+              <div class="state-title">Chưa có danh mục Chi nào</div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th style="width: 60px; text-align: center;">STT</th>
+                    <th>Tên Danh Mục Chi</th>
+                    <th style="width: 180px;">Áp Dụng Cho Mảng</th>
+                    <th style="width: 120px; text-align: center;">Trạng Thái</th>
+                    <th style="width: 140px; text-align: center;">Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody id="expense-category-tbody">
+                  <!-- Render bằng JS -->
+                </tbody>
+              </table>
+            </div>
           </div>
+        </div>
 
-          <!-- Empty -->
-          <div id="sys-table-empty" class="state-container hidden">
-            <div class="state-icon">👥</div>
-            <div class="state-title">Chưa có hồ sơ người dùng nào</div>
-            <p>Hồ sơ người dùng sẽ tự động tạo khi có thành viên đăng ký tài khoản vào hệ thống.</p>
-          </div>
+        <!-- ================= SUBVIEW 4: QUẢN LÝ DANH MỤC LƯƠNG & CHUYỂN KHOẢN ================= -->
+        <div id="sys-subview-salary" class="sys-subview hidden">
+          <div class="table-panel">
+            <div class="table-header">
+              <div class="table-title-area">
+                <h3>💳 Quản Lý Danh Mục Chi Lương &amp; Chuyển Khoản</h3>
+                <span>Danh mục định khoản các khoản chi lương nhân viên, tiền mặt bằng, điện nước, nhà cung cấp</span>
+              </div>
+              <div>
+                <button id="btn-add-salary-category" class="btn btn-primary btn-sm" style="background: #7c3aed;" title="Thêm danh mục Lương &amp; CK">
+                  ➕ Thêm danh mục Lương &amp; CK
+                </button>
+              </div>
+            </div>
 
-          <!-- Table -->
-          <div id="sys-table-wrapper" class="table-responsive">
-            <table class="custom-table">
-              <thead>
-                <tr>
-                  <th style="width: 200px;">Người dùng</th>
-                  <th style="width: 130px; text-align: center;">Vai trò</th>
-                  <th style="width: 220px;">Trang được truy cập</th>
-                  <th style="width: 220px;">Quyền thao tác dữ liệu</th>
-                  <th style="width: 120px; text-align: center;">Trạng thái</th>
-                  <th style="width: 120px; text-align: center;">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody id="sys-users-tbody">
-                <!-- Render bằng JavaScript -->
-              </tbody>
-            </table>
+            <!-- Loading -->
+            <div id="salary-cat-loading" class="state-container hidden">
+              <div class="spinner"></div>
+              <div class="state-title">Đang tải danh mục Lương &amp; CK...</div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th style="width: 160px;">Mã Danh Mục</th>
+                    <th>Nhãn Hiển Thị</th>
+                    <th style="width: 150px;">Phân Loại</th>
+                    <th style="width: 180px;">Người Tạo</th>
+                    <th style="width: 140px; text-align: center;">Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody id="salary-category-tbody">
+                  <!-- Rendered by JS -->
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -1931,6 +2041,134 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: THÊM / SỬA DANH MỤC THU CHI SỔ CHUNG ================= -->
+  <div id="modal-general-category" class="modal-overlay">
+    <div class="modal-content" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 id="modal-gencat-title">➕ Thêm Danh Mục</h3>
+        <button type="button" class="close-btn" data-close-modal>&times;</button>
+      </div>
+      <form id="form-general-category">
+        <input type="hidden" id="gencat-id">
+        <input type="hidden" id="gencat-type" value="income">
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="gencat-name">Tên danh mục <span class="required">*</span></label>
+            <input type="text" id="gencat-name" class="form-control" placeholder="Ví dụ: Doanh thu bán hàng, Tiền điện nước..." required autocomplete="off">
+          </div>
+
+          <div class="form-group">
+            <label for="gencat-unit">Áp dụng cho mảng hoạt động <span class="required">*</span></label>
+            <select id="gencat-unit" class="form-control" required style="font-weight: 600;">
+              <option value="">🌐 Áp dụng chung cho tất cả các mảng</option>
+            </select>
+            <small style="color: var(--text-muted); font-size: 0.78rem; display: block; margin-top: 4px;">
+              Chọn mảng cụ thể nếu danh mục chỉ xuất hiện khi chọn mảng đó trong phiếu thu/chi.
+            </small>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; cursor: pointer;">
+              <input type="checkbox" id="gencat-active" checked>
+              <span>Kích hoạt danh mục này (hiển thị trong danh sách chọn)</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" data-close-modal>Hủy bỏ</button>
+          <button type="submit" id="btn-save-gencat" class="btn btn-primary">
+            💾 Lưu Danh Mục
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: XÓA DANH MỤC THU CHI SỔ CHUNG ================= -->
+  <div id="modal-gencat-delete" class="modal-overlay">
+    <div class="modal-content" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3>Xác nhận xóa danh mục</h3>
+        <button type="button" class="close-btn" data-close-modal>&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Bạn có chắc chắn muốn xóa danh mục <strong id="gencat-delete-name">-</strong> không?</p>
+        <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">
+          Lưu ý: Không thể xóa danh mục đã phát sinh giao dịch trong sổ thu chi chung.
+        </p>
+        <input type="hidden" id="gencat-delete-id">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" data-close-modal>Hủy</button>
+        <button type="button" id="btn-confirm-gencat-delete" class="btn btn-danger">Xóa danh mục</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: THÊM / SỬA DANH MỤC LƯƠNG & CHUYỂN KHOẢN ================= -->
+  <div id="modal-salary-category" class="modal-overlay">
+    <div class="modal-content" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 id="modal-salary-category-title">➕ Thêm Danh Mục Lương &amp; CK</h3>
+        <button type="button" class="close-btn" data-close-modal>&times;</button>
+      </div>
+      <form id="form-salary-category">
+        <input type="hidden" id="sb-category-is-edit" value="0">
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="sb-category-code">Mã danh mục (duy nhất) <span class="required">*</span></label>
+            <input type="text" id="sb-category-code" class="form-control" placeholder="Ví dụ: salary_part_time, utility_water..." required autocomplete="off">
+            <small style="color: var(--text-muted); font-size: 0.78rem;">Dùng chữ cái không dấu và dấu gạch dưới, ví dụ: <code>supplier_meat</code></small>
+          </div>
+
+          <div class="form-group">
+            <label for="sb-category-label">Nhãn hiển thị tiếng Việt <span class="required">*</span></label>
+            <input type="text" id="sb-category-label" class="form-control" placeholder="Ví dụ: Tiền nước sinh hoạt cơ sở 2..." required autocomplete="off">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="sb-category-type">Phân loại chi phí <span class="required">*</span></label>
+            <select id="sb-category-type" class="form-control" style="font-weight: 600;">
+              <option value="bank_transfer" selected>💳 Chi Chuyển Khoản &amp; NCC</option>
+              <option value="salary">👤 Chi Lương &amp; Nhân Sự</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" data-close-modal>Hủy bỏ</button>
+          <button type="submit" id="btn-save-salary-category" class="btn btn-primary">
+            💾 Lưu Danh Mục
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: XÓA DANH MỤC LƯƠNG & CHUYỂN KHOẢN ================= -->
+  <div id="modal-salary-cat-delete" class="modal-overlay">
+    <div class="modal-content" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3>Xác nhận xóa danh mục</h3>
+        <button type="button" class="close-btn" data-close-modal>&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Bạn có chắc chắn muốn xóa danh mục <strong id="sb-cat-delete-label">-</strong> không?</p>
+        <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">
+          Lưu ý: Không thể xóa danh mục đã có khoản chi ghi nhận.
+        </p>
+        <input type="hidden" id="sb-cat-delete-code">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" data-close-modal>Hủy</button>
+        <button type="button" id="btn-confirm-sb-cat-delete" class="btn btn-danger">Xóa danh mục</button>
+      </div>
     </div>
   </div>
 
