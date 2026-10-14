@@ -92,8 +92,8 @@
         <!-- Form Đăng nhập -->
         <form id="form-login">
           <div class="form-group">
-            <label for="login-email">Email tài khoản <span class="required">*</span></label>
-            <input type="email" id="login-email" class="form-control" placeholder="admin@example.com" required autocomplete="email">
+            <label for="login-email">Tên đăng nhập hoặc Email <span class="required">*</span></label>
+            <input type="text" id="login-email" class="form-control" placeholder="thungan1 hoặc admin@example.com" required autocomplete="username">
           </div>
           <div class="form-group">
             <label for="login-password">Mật khẩu <span class="required">*</span></label>
@@ -107,8 +107,9 @@
         <!-- Form Đăng ký -->
         <form id="form-register" class="hidden">
           <div class="form-group">
-            <label for="reg-email">Email đăng ký <span class="required">*</span></label>
-            <input type="email" id="reg-email" class="form-control" placeholder="nhansu@example.com" required autocomplete="email">
+            <label for="reg-email">Tên đăng nhập hoặc Email <span class="required">*</span></label>
+            <input type="text" id="reg-email" class="form-control" placeholder="Ví dụ: thungan1 hoặc nhansu@example.com" required autocomplete="username">
+            <small style="color: var(--text-muted); font-size: 0.78rem;">Không bắt buộc có email (có thể dùng tên đăng nhập ngắn gọn)</small>
           </div>
           <div class="form-group">
             <label for="reg-password">Mật khẩu (tối thiểu 6 ký tự) <span class="required">*</span></label>
@@ -1951,8 +1952,9 @@
         <div class="modal-body">
           <div class="two-col-grid" style="margin-bottom: 1rem;">
             <div class="form-group" style="margin-bottom: 0;">
-              <label for="create-user-email">Email đăng nhập <span class="required">*</span></label>
-              <input type="email" id="create-user-email" class="form-control" placeholder="vidu@congty.com" required autocomplete="off">
+              <label for="create-user-email">Tên đăng nhập hoặc Email</label>
+              <input type="text" id="create-user-email" class="form-control" placeholder="Ví dụ: thungan1, ketoan hoặc nv@congty.com" autocomplete="off">
+              <small style="color: var(--text-muted); font-size: 0.78rem;">Không bắt buộc email (có thể dùng tên đăng nhập ngắn gọn hoặc để trống nếu đã có Họ tên)</small>
             </div>
 
             <div class="form-group" style="margin-bottom: 0;">

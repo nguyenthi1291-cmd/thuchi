@@ -663,7 +663,9 @@
 
   async function onUserSignedIn() {
     const user = window.AuthManager.currentUser;
-    DOM.userEmailDisplay.textContent = user?.email || "Người dùng";
+    const rawEmail = user?.email || "";
+    const cleanAccount = rawEmail.endsWith("@internal.local") ? rawEmail.replace("@internal.local", "") : rawEmail;
+    DOM.userEmailDisplay.textContent = cleanAccount || "Người dùng";
     DOM.userInfoArea.classList.remove("hidden");
     DOM.btnLogout.classList.remove("hidden");
     if (DOM.btnOpenExcelModal) DOM.btnOpenExcelModal.classList.remove("hidden");
@@ -693,8 +695,10 @@
       DOM.myProfileRoleBadge.textContent = roleInfo.name;
       DOM.myProfileRoleBadge.className = `badge ${roleInfo.badge}`;
     }
-    if (DOM.myProfileEmail) DOM.myProfileEmail.textContent = prof.email || "";
-    if (DOM.myProfileName) DOM.myProfileName.textContent = prof.full_name || prof.email.split("@")[0];
+    const rawProfEmail = prof.email || "";
+    const cleanProfEmail = rawProfEmail.endsWith("@internal.local") ? rawProfEmail.replace("@internal.local", "") : rawProfEmail;
+    if (DOM.myProfileEmail) DOM.myProfileEmail.textContent = cleanProfEmail || "-";
+    if (DOM.myProfileName) DOM.myProfileName.textContent = prof.full_name || cleanProfEmail;
 
     // Render permission badges on profile card
     if (DOM.myPermissionsBadges) {
@@ -3004,14 +3008,22 @@
       if (u.can_import) actionTags.push('<span class="badge badge-office" style="font-size: 0.72rem;">📥 Import</span>');
 
       const isCurrentMe = window.AuthManager.currentUser?.id === u.id;
+      const isInternal = u.email && u.email.endsWith("@internal.local");
+      const displayAccount = isInternal ? u.email.replace("@internal.local", "") : u.email;
+      const accountBadge = isInternal 
+        ? '<span class="badge" style="background: #f1f5f9; color: #475569; font-size: 0.7rem; margin-left: 4px; border: 1px solid var(--border-color);">Tài khoản nội bộ</span>' 
+        : '';
 
       tr.innerHTML = `
         <td>
           <div style="font-weight: 600; color: var(--text-main);">
-            ${escapeHtml(u.full_name || u.email.split("@")[0])}
+            ${escapeHtml(u.full_name || displayAccount)}
             ${isCurrentMe ? '<span class="badge badge-primary" style="font-size: 0.7rem; margin-left: 4px;">Bạn</span>' : ''}
           </div>
-          <small style="color: var(--text-muted); font-family: monospace;">${escapeHtml(u.email)}</small>
+          <small style="color: var(--text-muted); font-family: monospace;">
+            ${isInternal ? `👤 ${escapeHtml(displayAccount)}` : escapeHtml(u.email)}
+            ${accountBadge}
+          </small>
         </td>
         <td style="text-align: center;">
           <span class="badge ${roleInfo.badge}">${escapeHtml(roleInfo.name)}</span>
@@ -3153,13 +3165,13 @@
       DOM.formCreateUser.addEventListener("submit", async (e) => {
         e.preventDefault();
 
-        const email = (DOM.createUserEmail?.value || "").trim();
+        const rawIdentifier = (DOM.createUserEmail?.value || "").trim();
         const password = DOM.createUserPassword?.value || "";
         const fullName = (DOM.createUserName?.value || "").trim();
         const role = DOM.createUserRole?.value || "staff";
 
-        if (!email || !email.includes("@")) {
-          showToast("Vui lòng nhập email hợp lệ.", "error");
+        if (!rawIdentifier && !fullName) {
+          showToast("Vui lòng nhập Tên đăng nhập hoặc Họ và tên nhân viên.", "warning");
           return;
         }
         if (!password || password.length < 6) {
@@ -3168,9 +3180,9 @@
         }
 
         const userData = {
-          email,
+          email: rawIdentifier,
           password,
-          full_name: fullName || email.split("@")[0],
+          full_name: fullName || rawIdentifier.split("@")[0],
           role,
           can_access_transactions: !!DOM.createPermPageTx?.checked,
           can_access_fnb: !!DOM.createPermPageFnb?.checked,
@@ -3187,8 +3199,11 @@
         DOM.btnSubmitCreateUser.textContent = "⏳ Đang tạo tài khoản...";
 
         try {
-          await window.SystemService.createUserByAdmin(userData);
-          showToast(`🎉 Đã tạo tài khoản "${email}" thành công!`, "success");
+          const res = await window.SystemService.createUserByAdmin(userData);
+          const displayAcc = userData.email.endsWith("@internal.local") 
+            ? userData.email.replace("@internal.local", "") 
+            : userData.email;
+          showToast(`🎉 Đã tạo tài khoản "${displayAcc}" thành công!`, "success");
           closeModal(DOM.modalCreateUser);
           await loadSystemUsers();
         } catch (err) {

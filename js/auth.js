@@ -26,14 +26,26 @@ const AuthManager = {
     }
   },
 
-  async signUp(email, password) {
+  // Chuẩn hóa tên đăng nhập hoặc email
+  normalizeIdentifier(input) {
+    if (!input) return "";
+    const trimmed = input.trim().toLowerCase();
+    if (trimmed.includes("@")) return trimmed;
+    // Tên đăng nhập không chứa @ -> tự động định danh bằng domain nội bộ
+    const safe = trimmed.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9._-]/g, "");
+    return `${safe || "user"}@internal.local`;
+  },
+
+  async signUp(identifier, password) {
     const client = window.SupabaseConfig.getClient();
     if (!client) {
       throw new Error("Chưa cấu hình Supabase Anon Key. Vui lòng kiểm tra cấu hình.");
     }
 
+    const email = this.normalizeIdentifier(identifier);
+
     const { data, error } = await client.auth.signUp({
-      email: email.trim(),
+      email: email,
       password: password
     });
 
@@ -60,14 +72,16 @@ const AuthManager = {
     };
   },
 
-  async signIn(email, password) {
+  async signIn(identifier, password) {
     const client = window.SupabaseConfig.getClient();
     if (!client) {
       throw new Error("Chưa cấu hình Supabase Anon Key. Vui lòng kiểm tra cấu hình.");
     }
 
+    const email = this.normalizeIdentifier(identifier);
+
     const { data, error } = await client.auth.signInWithPassword({
-      email: email.trim(),
+      email: email,
       password: password
     });
 

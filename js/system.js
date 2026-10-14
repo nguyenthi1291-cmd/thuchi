@@ -130,9 +130,24 @@
       const client = window.SupabaseConfig.getClient();
       if (!client) throw new Error("Chưa kết nối Supabase.");
 
-      if (!userData.email || !userData.email.includes("@")) {
-        throw new Error("Email người dùng không hợp lệ.");
+      // Chuẩn hóa tên đăng nhập hoặc email (không bắt buộc email thật)
+      let cleanEmail = (userData.email || "").trim().toLowerCase();
+      if (!cleanEmail) {
+        // Nếu người dùng không nhập email / username, tự động sinh từ Họ và tên hoặc mã ngẫu nhiên
+        const rawName = (userData.full_name || "nhanvien").trim().toLowerCase()
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]/g, "");
+        const randNum = Math.floor(100 + Math.random() * 900);
+        cleanEmail = `${rawName || "user"}${randNum}@internal.local`;
+      } else if (!cleanEmail.includes("@")) {
+        // Người dùng nhập tên đăng nhập / mã nhân viên (không có @) -> gán domain nội bộ .local
+        const safeUsername = cleanEmail
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9._-]/g, "");
+        cleanEmail = `${safeUsername || "user"}@internal.local`;
       }
+      userData.email = cleanEmail;
+
       if (!userData.password || userData.password.length < 6) {
         throw new Error("Mật khẩu phải có tối thiểu 6 ký tự.");
       }
@@ -140,7 +155,7 @@
       // Cách 1: Gọi hàm RPC create_user_by_admin (chạy bằng pgcrypto, không làm mất session của admin)
       try {
         const { data, error } = await client.rpc("create_user_by_admin", {
-          p_email: userData.email.trim(),
+          p_email: userData.email,
           p_password: userData.password,
           p_full_name: userData.full_name ? userData.full_name.trim() : null,
           p_role: userData.role || "staff",
